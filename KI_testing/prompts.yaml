@@ -1,0 +1,132 @@
+# AI Prompt Templates for Educational Content Generation
+
+worksheet:
+  name: "Math Worksheet Generator"
+  version: "1.0"
+  model_params:
+    temperature: 0.7
+    max_tokens: 8000
+  
+  system_prompt: |
+    Create Grade {grade} math worksheet for "{topic}".
+
+    QUESTION FORMATS:
+
+    short_answer: <div class="problem"><span class="problem-text">12 + 8 =</span><span class="answer-space"></span></div>
+
+    word_problem: <div class="word-problem"><div class="word-problem-text">Question here</div><div class="work-space"></div></div>
+
+    multiple_choice: <div class="mc-problem"><div class="mc-question">What is 8 + 5?</div><div class="mc-options"><div class="mc-option">A) 12</div><div class="mc-option">B) 13</div><div class="mc-option">C) 14</div><div class="mc-option">D) 15</div></div></div>
+
+    true_false: <div class="tf-problem"><span class="tf-text">8 + 5 = 14</span><span class="tf-options">True ☐ False ☐</span></div>
+
+    fill_in_blank: <div class="problem"><span class="problem-text">7 + _____ = 15</span></div>
+
+    matching: <div class="matching-problem"><div class="matching-instructions">Draw a line to match each problem with its answer.</div><div class="matching-container"><div class="matching-column"><div class="matching-item">1. 5 + 3</div><div class="matching-item">2. 6 + 4</div></div><div class="matching-column"><div class="matching-item">A. 10</div><div class="matching-item">B. 8</div></div></div></div>
+
+    show_your_work: <div class="show-work-problem"><div class="problem-text">Solve: 345 + 278</div><div class="work-space-large"></div></div>
+
+    number_line: <div class="word-problem"><div class="word-problem-text">Use the number line to solve: 5 + 3</div><div class="number-line"><svg viewBox="0 0 300 60" style="width:100%; max-width:400px;"><line x1="20" y1="30" x2="280" y2="30" stroke="#000" stroke-width="2"/><text x="15" y="50" font-size="12">0</text><line x1="20" y1="25" x2="20" y2="35" stroke="#000" stroke-width="2"/><text x="72" y="50" font-size="12">5</text><line x1="76" y1="25" x2="76" y2="35" stroke="#000" stroke-width="2"/><text x="128" y="50" font-size="12">10</text><line x1="132" y1="25" x2="132" y2="35" stroke="#000" stroke-width="2"/></svg></div><div class="work-space"></div></div>
+
+    ordering: <div class="ordering-problem"><div class="ordering-text">Put these numbers in order from least to greatest:</div><div class="ordering-items">23, 15, 31, 8, 19</div><div class="ordering-answer">_____, _____, _____, _____, _____</div></div>
+
+    circle_correct: <div class="circle-problem"><div class="circle-text">Circle the number that makes this true: 7 + ___ = 12</div><div class="circle-options">3   4   5   6</div></div>
+
+    CHART FORMATS:
+
+    BAR CHART:
+    <div class="chart-container">
+      <div class="chart-title">Toy Sales</div>
+      <div class="chart-y-label">Number Sold</div>
+      <div class="bar-chart">
+        <div class="bar"><div class="bar-fill" style="height: 80px;">8</div><div class="bar-label">Cars</div></div>
+        <div class="bar"><div class="bar-fill" style="height: 120px;">12</div><div class="bar-label">Dolls</div></div>
+        <div class="bar"><div class="bar-fill" style="height: 100px;">10</div><div class="bar-label">Blocks</div></div>
+        <div class="bar"><div class="bar-fill" style="height: 60px;">6</div><div class="bar-label">Puzzles</div></div>
+        <div class="bar"><div class="bar-fill" style="height: 140px;">14</div><div class="bar-label">Games</div></div>
+      </div>
+    </div>
+
+    DATA TABLE:
+    <table class="data-table">
+      <tr><th>Item</th><th>Count</th></tr>
+      <tr><td>Apples</td><td>12</td></tr>
+      <tr><td>Oranges</td><td>8</td></tr>
+      <tr><td>Bananas</td><td>15</td></tr>
+      <tr><td>Grapes</td><td>10</td></tr>
+    </table>
+
+    PIE CHART (Google Charts):
+    <div class="google-chart-container">
+      <div id="piechart_0" style="width: 500px; height: 300px; margin: 0 auto;"></div>
+    </div>
+    <script type="text/javascript">
+      google.charts.setOnLoadCallback(drawChart_piechart_0);
+      function drawChart_piechart_0() {{
+        var data = google.visualization.arrayToDataTable([
+          ['Food', 'Votes'],
+          ['Pizza', 40],
+          ['Burgers', 30],
+          ['Tacos', 20],
+          ['Salad', 10]
+        ]);
+        var options = {{
+          title: 'Favorite Foods',
+          pieHole: 0,
+          chartArea: {{width: '90%', height: '80%'}},
+          legend: {{position: 'right'}},
+          fontSize: 14
+        }};
+        var chart = new google.visualization.PieChart(document.getElementById('piechart_0'));
+        chart.draw(data, options);
+      }}
+    </script>
+
+    LINE CHART (Google Charts):
+    <div class="google-chart-container">
+      <div id="linechart_0" style="width: 500px; height: 300px; margin: 0 auto;"></div>
+    </div>
+    <script type="text/javascript">
+      google.charts.setOnLoadCallback(drawChart_linechart_0);
+      function drawChart_linechart_0() {{
+        var data = google.visualization.arrayToDataTable([
+          ['Day', 'Temperature'],
+          ['Monday', 65],
+          ['Tuesday', 70],
+          ['Wednesday', 75],
+          ['Thursday', 68],
+          ['Friday', 72]
+        ]);
+        var options = {{
+          title: 'Temperature This Week',
+          legend: {{ position: 'bottom' }},
+          chartArea: {{width: '85%', height: '70%'}},
+          vAxis: {{title: 'Temperature (°F)', minValue: 50, maxValue: 90}},
+          hAxis: {{title: 'Day'}},
+          fontSize: 14,
+          pointSize: 8,
+          lineWidth: 2
+        }};
+        var chart = new google.visualization.LineChart(document.getElementById('linechart_0'));
+        chart.draw(data, options);
+      }}
+    </script>
+
+    BUILD IN THIS EXACT ORDER (DO NOT REORDER):
+    {section_instructions}
+
+    CRITICAL RULES:
+    1. Generate sections in EXACT order shown above
+    2. DO NOT add extra section headers - only output <h2> when specified
+    3. When questions say "ABOUT THE CHART/TABLE ABOVE" - reference specific data values
+    4. Use grade {grade} topics: toys, food, sports, weather, pets
+    5. Bar chart heights: 40-160px (10px per unit)
+    6. Output clean HTML only
+
+    Generate now:
+
+# Add more prompt types here
+# quiz:
+#   name: "Quiz Generator"
+#   system_prompt: |
+#     ...

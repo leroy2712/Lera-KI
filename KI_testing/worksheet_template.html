@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade 3 Math Worksheet</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+    </script>
+    <style>
+        @page {
+            size: letter;
+            margin: 1in;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0;
+            font-size: 14pt;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 24pt;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            font-size: 16pt;
+            margin-bottom: 15px;
+            margin-top: 25px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5px;
+        }
+        
+        .student-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            font-size: 14pt;
+        }
+        
+        .field {
+            flex: 1;
+        }
+        
+        .underline {
+            border-bottom: 1px solid #000;
+            display: inline-block;
+            min-width: 250px;
+            margin-left: 10px;
+        }
+        
+        .section {
+            margin-bottom: 35px;
+        }
+        
+        /* STANDARDIZED QUESTION SIZING - ALL 14pt */
+        .problem {
+            font-size: 14pt;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .problem-text {
+            flex: 1;
+            font-size: 14pt;
+        }
+        
+        .answer-space {
+            border-bottom: 1px solid #000;
+            min-width: 80px;
+            margin-left: 15px;
+            height: 25px;
+        }
+        
+        .word-problem {
+            margin-bottom: 25px;
+        }
+        
+        .word-problem-text {
+            font-size: 14pt;
+            margin-bottom: 10px;
+            line-height: 1.8;
+        }
+        
+        .work-space {
+            border: 1px solid #000;
+            min-height: 60px;
+            padding: 8px;
+            margin-top: 8px;
+        }
+        
+        /* Multiple Choice */
+        .mc-problem {
+            margin-bottom: 20px;
+        }
+
+        .mc-question {
+            font-size: 14pt;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .mc-options {
+            margin-left: 20px;
+        }
+
+        .mc-option {
+            font-size: 14pt;
+            margin: 5px 0;
+        }
+
+        /* True/False */
+        .tf-problem {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14pt;
+            margin-bottom: 18px;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tf-text {
+            flex: 1;
+            font-size: 14pt;
+        }
+
+        .tf-options {
+            font-size: 14pt;
+            white-space: nowrap;
+        }
+
+        /* Matching */
+        .matching-problem {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1.5px solid #333;
+        }
+
+        .matching-instructions {
+            font-size: 14pt;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        .matching-container {
+            display: flex;
+            justify-content: space-around;
+            gap: 40px;
+        }
+
+        .matching-column {
+            flex: 1;
+        }
+
+        .matching-item {
+            font-size: 14pt;
+            margin: 12px 0;
+            padding: 5px;
+        }
+
+        /* Show Your Work */
+        .show-work-problem {
+            margin-bottom: 25px;
+        }
+        
+        .show-work-problem .problem-text {
+            font-size: 14pt;
+            margin-bottom: 10px;
+        }
+
+        .work-space-large {
+            border: 1px solid #000;
+            min-height: 120px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        /* Number Line */
+        .number-line {
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        /* Ordering */
+        .ordering-problem {
+            margin-bottom: 20px;
+        }
+
+        .ordering-text {
+            font-size: 14pt;
+            margin-bottom: 10px;
+        }
+
+        .ordering-items {
+            font-size: 14pt;
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .ordering-answer {
+            font-size: 14pt;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* Circle Correct */
+        .circle-problem {
+            margin-bottom: 20px;
+        }
+
+        .circle-text {
+            font-size: 14pt;
+            margin-bottom: 10px;
+        }
+
+        .circle-options {
+            font-size: 14pt;
+            font-weight: bold;
+            letter-spacing: 30px;
+            margin: 10px 20px;
+        }
+        
+        /* Data tables */
+        .data-table {
+            margin: 15px auto;
+            border-collapse: collapse;
+            font-size: 14pt;
+            max-width: 400px;
+        }
+        
+        .data-table th {
+            background-color: #e8e8e8;
+            border: 1.5px solid #000;
+            padding: 8px 12px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 14pt;
+        }
+        
+        .data-table td {
+            border: 1.5px solid #000;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 14pt;
+        }
+        
+        /* Chart containers */
+        .chart-container {
+            margin: 15px auto;
+            padding: 15px;
+            border: 1.5px solid #333;
+            max-width: 90%;
+            background-color: #fafafa;
+            box-sizing: border-box;
+        }
+        
+        .chart-title {
+            font-size: 14pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        
+        /* Bar chart */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-evenly;
+            height: 160px;
+            border-left: 2px solid #333;
+            border-bottom: 2px solid #333;
+            padding: 10px 5px 5px 10px;
+            margin: 0 10px 10px 10px;
+            position: relative;
+            box-sizing: border-box;
+        }
+        
+        .bar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            max-width: 70px;
+            margin: 0 4px;
+        }
+        
+        .bar-fill {
+            width: 100%;
+            max-width: 45px;
+            background: linear-gradient(to top, #444, #666);
+            border: 1px solid #000;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 4px;
+            color: white;
+            font-weight: bold;
+            font-size: 12pt;
+            box-sizing: border-box;
+        }
+        
+        .bar-label {
+            margin-top: 6px;
+            font-size: 12pt;
+            text-align: center;
+            font-weight: 500;
+            word-wrap: break-word;
+            max-width: 60px;
+        }
+        
+        .chart-y-label {
+            font-size: 12pt;
+            margin-left: 10px;
+            margin-bottom: 3px;
+            font-weight: 500;
+        }
+        
+        /* Google Charts */
+        .google-chart-container {
+            margin: 20px auto;
+            text-align: center;
+        }
+        
+        .score-box {
+            margin-top: 40px;
+            text-align: right;
+            font-size: 14pt;
+            font-weight: bold;
+        }
+        
+        .score-box .box {
+            border: 2px solid #000;
+            display: inline-block;
+            padding: 10px 20px;
+        }
+        
+        @media print {
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+    </style>
+
+</head>
+<body>
+    <div class="header">
+        <h1>{{TITLE}}</h1>
+    </div>
+    
+    <div class="student-info">
+        <div class="field">
+            Name: <span class="underline"></span>
+        </div>
+        <div class="field">
+            Date: <span class="underline"></span>
+        </div>
+    </div>
+    
+    {{CONTENT}}
+    
+    <div class="score-box">
+        <div class="box">Score: _________ / {{TOTAL_POINTS}}</div>
+    </div>
+</body>
+</html>
