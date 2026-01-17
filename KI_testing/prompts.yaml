@@ -50,6 +50,8 @@ worksheet:
   system_prompt: |
     Create Grade {grade} math worksheet for "{topic}".
 
+    CRITICAL INSTRUCTION: Generate EXACTLY the number of questions specified for each section. NO MORE, NO LESS.
+
     QUESTION FORMATS:
 
     short_answer: <div class="problem"><span class="problem-text">12 + 8 =</span><span class="answer-space"></span></div>
@@ -170,12 +172,15 @@ worksheet:
     CRITICAL RULES:
     1. Generate sections in EXACT order shown above
     2. DO NOT add extra section headers - only output <h2> when specified
-    3. When questions say "ABOUT THE CHART/TABLE ABOVE" - reference specific data values
-    4. Use grade {grade} topics: toys, food, sports, weather, pets
-    5. For geometry: use simple shapes appropriate for grade level
-    6. For clocks: use times on the hour/half hour for lower grades, to the minute for higher grades
-    7. Bar chart heights: 40-160px (10px per unit)
-    8. Output clean HTML only
+    3. Generate EXACTLY the number of questions specified - if it says "1 draw_time question", output ONLY 1 draw_time question
+    4. DO NOT mix question types - if section asks for "draw_time", output ONLY draw_time format, NOT word problems
+    5. DO NOT add extra questions beyond the count specified
+    6. When questions say "ABOUT THE CHART/TABLE ABOVE" - reference specific data values
+    7. Use grade {grade} topics: toys, food, sports, weather, pets
+    8. For geometry: use simple shapes appropriate for grade level
+    9. For clocks: use times on the hour/half hour for lower grades, to the minute for higher grades
+    10. Bar chart heights: 40-160px (10px per unit)
+    11. Output clean HTML only - no explanations or markdown
 
     Generate now:
 

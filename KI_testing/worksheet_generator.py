@@ -115,16 +115,27 @@ def generate_worksheet(grade, worksheet_title, question_blocks, subject="Math"):
             # Regular question section
             section_instructions.append(f"\n--- SECTION {idx} START ---")
             section_instructions.append(f"Output: <h2>{idx}. {topic_name}</h2>")
-            
-            question_desc = f"{count} {item_type} questions about '{topic_name}'"
+
+            # Make instructions VERY explicit
+            question_desc = f"Output EXACTLY {count} {item_type} question(s)"
+            if count == 1:
+                question_desc = f"Output EXACTLY ONE {item_type} question"
+                
+            question_desc += f" about '{topic_name}'"
+
+            # Add specific format reminder for problematic types
+            if item_type in ['draw_time', 'tell_time']:
+                question_desc += f" - USE ONLY THE {item_type.upper()} FORMAT, NO WORD PROBLEMS"
+                
             if 'options' in block:
                 question_desc += f" ({block['options']} options)"
             if block.get('difficulty'):
                 question_desc += f" [difficulty: {block['difficulty']}]"
-            
+
             section_instructions.append(f"Output: {question_desc}")
+            section_instructions.append(f"STOP AFTER {count} QUESTION(S) - DO NOT ADD MORE")
             section_instructions.append(f"--- SECTION {idx} END ---\n")
-        
+
         sections.append(block)
     
     total_problems = sum(b.get('count', 0) for b in question_blocks if b['type'] not in ['data_table', 'bar_chart', 'pie_chart', 'line_chart'])
@@ -184,16 +195,16 @@ def generate_worksheet(grade, worksheet_title, question_blocks, subject="Math"):
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
-        print("✓ Worksheet generated successfully!")
-        print(f"✓ Saved to: {output_file}")
-        print(f"✓ Input tokens: {result['usage']['prompt_tokens']}")
-        print(f"✓ Output tokens: {result['usage']['completion_tokens']}")
-        print(f"✓ Total tokens: {result['usage']['total_tokens']}")
+        print(" Worksheet generated successfully!")
+        print(f" Saved to: {output_file}")
+        print(f" Input tokens: {result['usage']['prompt_tokens']}")
+        print(f" Output tokens: {result['usage']['completion_tokens']}")
+        print(f" Total tokens: {result['usage']['total_tokens']}")
         
         input_cost = (result['usage']['prompt_tokens'] / 1_000_000) * 0.040
         output_cost = (result['usage']['completion_tokens'] / 1_000_000) * 0.150
         total_cost = input_cost + output_cost
-        print(f"✓ Estimated cost: ${total_cost:.6f} (${total_cost*100:.4f}¢)")
+        print(f" Estimated cost: ${total_cost:.6f} (${total_cost*100:.4f}¢)")
         
         return html_content
     else:
