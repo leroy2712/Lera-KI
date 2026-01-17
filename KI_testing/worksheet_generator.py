@@ -5,40 +5,95 @@ import yaml
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env file from project root
-env_path = Path(__file__).parent.parent / '.env'
+# Load .env file
+env_path = '.env'
 load_dotenv(dotenv_path=env_path)
 
 # Load prompts from YAML
-prompts_path = Path(__file__).parent / 'prompts.yaml'
+prompts_path = 'prompts.yaml'
 with open(prompts_path, 'r', encoding='utf-8') as f:
     PROMPTS = yaml.safe_load(f)
 
-def generate_worksheet(grade=3, topic="Addition and Subtraction", sections=None):
-    if sections is None:
-        sections = [
-            {'name': 'Addition Practice', 'type': 'short_answer', 'count': 5},
-            {'name': 'Word Problems', 'type': 'word_problem', 'count': 2}
-        ]
+
+def load_syllabus(grade, subject="Math"):
+    """Load analyzed syllabus for topic selection."""
+    syllabus_file = f'syllabus/syllabus_grade{grade}_{subject.lower()}.json'
+    
+    if not Path(syllabus_file).exists():
+        return None
+    
+    with open(syllabus_file, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def find_subtopic_by_id(syllabus_data, subtopic_id):
+    """Find a subtopic by its ID."""
+    for topic in syllabus_data['topics']:
+        for subtopic in topic['subtopics']:
+            if subtopic['id'] == subtopic_id:
+                return subtopic
+    return None
+
+
+def generate_worksheet(grade, worksheet_title, question_blocks, subject="Math"):
+    """
+    Generate a worksheet from selected topics and question types.
+    
+    Args:
+        grade (int): Grade level
+        worksheet_title (str): Title for the worksheet
+        question_blocks (list): List of question block configurations
+            Example:
+            [
+                {
+                    'subtopic_id': 'num_ops_1',  # from analyzed syllabus
+                    'type': 'short_answer',
+                    'count': 5,
+                    'difficulty': 'easy'
+                },
+                {
+                    'subtopic_id': 'geo_shapes_1',
+                    'type': 'multiple_choice',
+                    'count': 3,
+                    'options': 4
+                }
+            ]
+        subject (str): Subject name
+    
+    Returns:
+        str: Generated HTML content
+    """
+    
+    # Load syllabus to get topic names
+    syllabus_data = load_syllabus(grade, subject)
+    if not syllabus_data:
+        print(f"No syllabus found. Run syllabus-analyzer.py first!")
+        return None
     
     url = "https://openrouter.ai/api/v1/chat/completions"
     
     # Track chart IDs
     chart_counter = {'bar': 0, 'pie': 0, 'line': 0}
     
-    # Build instructions by grouping sections
+    # Build section instructions from question blocks
     section_instructions = []
-    i = 0
+    sections = []  # Track for token counting
     
-    while i < len(sections):
-        section = sections[i]
-        item_type = section['type']
-        name = section.get('name', '')
-        count = section.get('count', 1)
+    for idx, block in enumerate(question_blocks, 1):
+        item_type = block['type']
+        count = block.get('count', 1)
         
+        # Get topic name from syllabus
+        if 'subtopic_id' in block:
+            subtopic = find_subtopic_by_id(syllabus_data, block['subtopic_id'])
+            topic_name = subtopic['name'] if subtopic else "Practice Problems"
+        else:
+            topic_name = block.get('topic_name', "Practice Problems")
+        
+        # Handle charts
         if item_type in ['bar_chart', 'pie_chart', 'line_chart', 'data_table']:
-            grouped_section = [f"\n--- SECTION {i+1} START ---"]
-            grouped_section.append(f"Output: <h2>{name or f'Chart {i+1}'}</h2>")
+            grouped_section = [f"\n--- SECTION {idx} START ---"]
+            grouped_section.append(f"Output: <h2>{idx}. {topic_name}</h2>")
             
             if item_type == 'bar_chart':
                 grouped_section.append("Output: CSS bar chart (5 bars)")
@@ -53,53 +108,39 @@ def generate_worksheet(grade=3, topic="Addition and Subtraction", sections=None)
             elif item_type == 'data_table':
                 grouped_section.append("Output: Data table (4 rows)")
             
-            i += 1
-            while i < len(sections) and not sections[i].get('name'):
-                q_section = sections[i]
-                q_type = q_section['type']
-                q_count = q_section.get('count', 1)
-                q_options = q_section.get('options', '')
-                
-                question_desc = f"{q_count} {q_type} questions"
-                if q_options:
-                    question_desc += f" ({q_options} options)"
-                question_desc += f" - ABOUT THE CHART/TABLE ABOVE"
-                
-                grouped_section.append(f"Then output: {question_desc}")
-                i += 1
-            
-            grouped_section.append(f"--- SECTION {i} END ---\n")
+            grouped_section.append(f"--- SECTION {idx} END ---\n")
             section_instructions.extend(grouped_section)
             
         else:
-            section_instructions.append(f"\n--- SECTION {i+1} START ---")
-            section_instructions.append(f"Output: <h2>{name}</h2>")
+            # Regular question section
+            section_instructions.append(f"\n--- SECTION {idx} START ---")
+            section_instructions.append(f"Output: <h2>{idx}. {topic_name}</h2>")
             
-            question_desc = f"{count} {item_type} questions"
-            if 'options' in section:
-                question_desc += f" ({section['options']} options)"
-            if section.get('difficulty'):
-                question_desc += f" [difficulty: {section['difficulty']}]"
+            question_desc = f"{count} {item_type} questions about '{topic_name}'"
+            if 'options' in block:
+                question_desc += f" ({block['options']} options)"
+            if block.get('difficulty'):
+                question_desc += f" [difficulty: {block['difficulty']}]"
             
             section_instructions.append(f"Output: {question_desc}")
-            section_instructions.append(f"--- SECTION {i+1} END ---\n")
-            i += 1
+            section_instructions.append(f"--- SECTION {idx} END ---\n")
+        
+        sections.append(block)
     
-    total_problems = sum(s.get('count', 0) for s in sections if s['type'] not in ['data_table', 'bar_chart', 'pie_chart', 'line_chart'])
+    total_problems = sum(b.get('count', 0) for b in question_blocks if b['type'] not in ['data_table', 'bar_chart', 'pie_chart', 'line_chart'])
     
-    # Load prompt from YAML and format
+    # Format prompt
     prompt = PROMPTS['worksheet']['system_prompt'].format(
         grade=grade,
-        topic=topic,
+        topic=worksheet_title,
         section_instructions=''.join(section_instructions)
     )
-
+    
     headers = {
         "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
         "Content-Type": "application/json"
     }
     
-    # Get model params from YAML
     model_params = PROMPTS['worksheet']['model_params']
     
     data = {
@@ -109,6 +150,7 @@ def generate_worksheet(grade=3, topic="Addition and Subtraction", sections=None)
         "max_tokens": model_params['max_tokens']
     }
     
+    print(f"Generating worksheet: {worksheet_title}")
     response = requests.post(url, headers=headers, json=data)
     
     if response.status_code == 200:
@@ -121,16 +163,24 @@ def generate_worksheet(grade=3, topic="Addition and Subtraction", sections=None)
                 content = content[4:]
             content = content.strip()
         
-        template_path = Path(__file__).parent / 'worksheet_template.html'
+        template_path = 'templates/worksheet_template.html'
         with open(template_path, 'r', encoding='utf-8') as f:
             template = f.read()
         
-        title = f"Grade {grade} Math Practice - {topic}"
+        title = f"Grade {grade} {subject} - {worksheet_title}"
         html_content = template.replace('{{TITLE}}', title)
         html_content = html_content.replace('{{CONTENT}}', content)
         html_content = html_content.replace('{{TOTAL_POINTS}}', str(total_problems))
         
-        output_file = Path(__file__).parent / f'grade{grade}_worksheet.html'
+        # Create worksheets subdirectory if it doesn't exist
+        worksheets_dir = Path('worksheets')
+        worksheets_dir.mkdir(exist_ok=True)
+        
+        # Generate filename from title
+        safe_title = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in worksheet_title)
+        safe_title = safe_title.replace(' ', '_').lower()
+        output_file = worksheets_dir / f'grade{grade}_{safe_title}.html'
+        
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
@@ -151,37 +201,44 @@ def generate_worksheet(grade=3, topic="Addition and Subtraction", sections=None)
         print(response.text)
         return None
 
+
 if __name__ == "__main__":
-    api_key = os.getenv('OPENROUTER_API_KEY')
+    # Example: Generate a custom worksheet using analyzed syllabus
     
-    if not api_key:
-        print("Error: OPENROUTER_API_KEY not found in .env file")
-    else:
-        generate_worksheet(
-            grade=4,
-            topic="Complete Skills Assessment",
-            sections=[
-                {'name': '1. Addition Practice', 'type': 'short_answer', 'count': 5},
-                {'name': '2. Bar Chart Analysis', 'type': 'bar_chart'},
-                {'type': 'short_answer', 'count': 2},
-                {'type': 'word_problem', 'count': 1},
-                {'name': '3. Reading Data Tables', 'type': 'data_table'},
-                {'type': 'short_answer', 'count': 2},
-                {'type': 'multiple_choice', 'count': 2, 'options': 4},
-                {'name': '4. Pie Chart Survey', 'type': 'pie_chart'},
-                {'type': 'fill_in_blank', 'count': 3},
-                {'type': 'true_false', 'count': 2},
-                {'name': '5. Line Chart Analysis', 'type': 'line_chart'},
-                {'type': 'short_answer', 'count': 2},
-                {'type': 'word_problem', 'count': 1},
-                {'name': '6. Story Problems', 'type': 'word_problem', 'count': 3},
-                {'name': '7. Multiple Choice Quiz', 'type': 'multiple_choice', 'count': 5, 'options': 4},
-                {'name': '8. True or False', 'type': 'true_false', 'count': 5},
-                {'name': '9. Fill in the Blanks', 'type': 'fill_in_blank', 'count': 5},
-                {'name': '10. Match the Problems', 'type': 'matching', 'count': 1},
-                {'name': '11. Show Your Work', 'type': 'show_your_work', 'count': 3},
-                {'name': '12. Number Line Practice', 'type': 'number_line', 'count': 3},
-                {'name': '13. Put in Order', 'type': 'ordering', 'count': 3},
-                {'name': '14. Circle the Answer', 'type': 'circle_correct', 'count': 5}
-            ]
-        )
+    # First, make sure you've run syllabus-analyzer.py to generate the JSON
+    
+    # Define question blocks (teacher selects these)
+    question_blocks = [
+        {
+            'subtopic_id': 'num_ops_add_sub',  # This would come from syllabus JSON
+            'topic_name': 'Adding and Subtracting within 1,000',  # Fallback if no syllabus
+            'type': 'short_answer',
+            'count': 5,
+            'difficulty': 'easy'
+        },
+        {
+            'topic_name': 'Bar Chart Analysis',
+            'type': 'bar_chart'
+        },
+        {
+            'subtopic_id': 'num_ops_add_sub',
+            'topic_name': 'Word Problems - Addition/Subtraction',
+            'type': 'word_problem',
+            'count': 3,
+            'difficulty': 'medium'
+        },
+        {
+            'subtopic_id': 'geo_shapes',
+            'topic_name': 'Shape Classification',
+            'type': 'multiple_choice',
+            'count': 4,
+            'options': 4
+        }
+    ]
+    
+    generate_worksheet(
+        grade=3,
+        worksheet_title="Mixed Review - Numbers and Shapes",
+        question_blocks=question_blocks,
+        subject="Math"
+    )

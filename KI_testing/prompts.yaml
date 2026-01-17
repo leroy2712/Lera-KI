@@ -1,5 +1,45 @@
 # AI Prompt Templates for Educational Content Generation
 
+syllabus_analyzer:
+  name: "Syllabus Topic Analyzer"
+  version: "1.0"
+  model_params:
+    temperature: 0.3
+    max_tokens: 3000
+  
+  system_prompt: |
+    You are a curriculum analysis expert. Analyze the provided syllabus and extract a structured list of topics and subtopics.
+
+    INPUT SYLLABUS:
+    {syllabus_text}
+
+    OUTPUT REQUIREMENTS:
+    - Identify main topic categories (e.g., "Numbers and Operations", "Geometry")
+    - Break down each category into specific subtopics
+    - Each subtopic should be actionable and worksheet-ready
+    - Output ONLY valid JSON, no markdown or explanations
+
+    JSON STRUCTURE:
+    {{
+      "grade": {grade},
+      "subject": "{subject}",
+      "topics": [
+        {{
+          "name": "Topic Category Name",
+          "subtopics": [
+            {{
+              "id": "unique_id",
+              "name": "Subtopic Name",
+              "description": "Brief description of what students learn",
+              "difficulty": "easy|medium|hard"
+            }}
+          ]
+        }}
+      ]
+    }}
+
+    Analyze the syllabus and output the JSON now:
+
 worksheet:
   name: "Math Worksheet Generator"
   version: "1.0"
@@ -31,6 +71,18 @@ worksheet:
     ordering: <div class="ordering-problem"><div class="ordering-text">Put these numbers in order from least to greatest:</div><div class="ordering-items">23, 15, 31, 8, 19</div><div class="ordering-answer">_____, _____, _____, _____, _____</div></div>
 
     circle_correct: <div class="circle-problem"><div class="circle-text">Circle the number that makes this true: 7 + ___ = 12</div><div class="circle-options">3   4   5   6</div></div>
+
+    draw_shapes: <div class="shape-drawing-problem"><div class="shape-prompt">Draw a rectangle with a perimeter of 16 units</div><div class="grid-paper"><svg viewBox="0 0 300 300" style="width:100%; max-width:300px;"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#ddd" stroke-width="1"/></pattern></defs><rect width="300" height="300" fill="url(#grid)"/></svg></div></div>
+
+    identify_shapes: <div class="shape-id-problem"><div class="shape-question">Circle all the quadrilaterals:</div><div class="shape-options"><svg viewBox="0 0 400 100" style="width:100%; max-width:400px;"><polygon points="30,20 50,20 50,60 30,60" fill="none" stroke="#000" stroke-width="2"/><circle cx="100" cy="40" r="20" fill="none" stroke="#000" stroke-width="2"/><polygon points="150,20 180,20 165,60" fill="none" stroke="#000" stroke-width="2"/><polygon points="220,30 240,20 260,30 240,60" fill="none" stroke="#000" stroke-width="2"/></svg></div><div class="work-space"></div></div>
+
+    partition_shapes: <div class="partition-problem"><div class="partition-text">Divide this rectangle into 4 equal parts:</div><svg viewBox="0 0 200 150" style="width:100%; max-width:200px; border: 1px solid #000;"><rect x="10" y="10" width="180" height="130" fill="none" stroke="#000" stroke-width="2"/></svg></div>
+
+    area_perimeter_grid: <div class="grid-counting-problem"><div class="grid-question">Count the squares to find the area. Each square = 1 sq unit.</div><svg viewBox="0 0 200 150" style="width:100%; max-width:250px;"><defs><pattern id="countgrid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#999" stroke-width="1"/></pattern></defs><rect width="200" height="150" fill="url(#countgrid)"/><path d="M 20,40 L 100,40 L 100,100 L 20,100 Z" fill="lightblue" stroke="#000" stroke-width="2"/></svg><div class="answer-line">Area = _____ square units</div><div class="answer-line">Perimeter = _____ units</div></div>
+
+    tell_time: <div class="clock-problem"><div class="clock-question">What time is shown on the clock?</div><svg viewBox="0 0 200 200" style="width:100%; max-width:180px;"><circle cx="100" cy="100" r="90" fill="white" stroke="#000" stroke-width="3"/><circle cx="100" cy="100" r="5" fill="#000"/><text x="100" y="30" text-anchor="middle" font-size="16" font-weight="bold">12</text><text x="170" y="105" text-anchor="middle" font-size="16" font-weight="bold">3</text><text x="100" y="180" text-anchor="middle" font-size="16" font-weight="bold">6</text><text x="30" y="105" text-anchor="middle" font-size="16" font-weight="bold">9</text><line x1="100" y1="100" x2="100" y2="50" stroke="#000" stroke-width="4" stroke-linecap="round"/><line x1="100" y1="100" x2="140" y2="100" stroke="#000" stroke-width="3" stroke-linecap="round"/></svg><div class="answer-line">Time: _____:_____</div></div>
+
+    draw_time: <div class="clock-problem"><div class="clock-question">Draw the hands to show 3:45</div><svg viewBox="0 0 200 200" style="width:100%; max-width:180px;"><circle cx="100" cy="100" r="90" fill="white" stroke="#000" stroke-width="3"/><circle cx="100" cy="100" r="5" fill="#000"/><text x="100" y="30" text-anchor="middle" font-size="16" font-weight="bold">12</text><text x="170" y="105" text-anchor="middle" font-size="16" font-weight="bold">3</text><text x="100" y="180" text-anchor="middle" font-size="16" font-weight="bold">6</text><text x="30" y="105" text-anchor="middle" font-size="16" font-weight="bold">9</text></svg></div>
 
     CHART FORMATS:
 
@@ -120,10 +172,13 @@ worksheet:
     2. DO NOT add extra section headers - only output <h2> when specified
     3. When questions say "ABOUT THE CHART/TABLE ABOVE" - reference specific data values
     4. Use grade {grade} topics: toys, food, sports, weather, pets
-    5. Bar chart heights: 40-160px (10px per unit)
-    6. Output clean HTML only
+    5. For geometry: use simple shapes appropriate for grade level
+    6. For clocks: use times on the hour/half hour for lower grades, to the minute for higher grades
+    7. Bar chart heights: 40-160px (10px per unit)
+    8. Output clean HTML only
 
     Generate now:
+
 
 # Add more prompt types here
 # quiz:

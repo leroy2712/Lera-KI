@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Syllabus Analyzer - Lera-KI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Syllabus Analyzer</h1>
+    <p>Paste your syllabus below and we'll structure it for worksheet generation</p>
+</div>
+
+<div class="form-container">
+    <form id="syllabusForm">
+        <div class="form-group">
+            <label for="grade">Grade Level:</label>
+            <input type="number" id="grade" name="grade" min="1" max="12" value="3" required>
+        </div>
+
+        <div class="form-group">
+            <label for="subject">Subject:</label>
+            <input type="text" id="subject" name="subject" value="Math" required>
+        </div>
+
+        <div class="form-group">
+            <label for="syllabusText">Syllabus Content:</label>
+            <textarea id="syllabusText" name="syllabusText" rows="15" required placeholder="Example:
+
+Numbers and Operations
+- adding and subtracting within 1,000
+- place value of ones, tens and hundreds
+- rounding numbers to the nearest 10 or 100
+
+Geometry
+- classification of shapes by their properties
+- area and perimeter of rectangles"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-large">Analyze Syllabus</button>
+    </form>
+</div>
+
+<div id="results" class="results-container" style="display: none;">
+    <h2>Analysis Results</h2>
+    <div id="resultsContent"></div>
+    <button onclick="goToWorksheetBuilder()" class="btn btn-success btn-large">Continue to Worksheet Builder →</button>
+</div>
+
+<div id="loading" class="loading" style="display: none;">
+    <div class="spinner"></div>
+    <p>Analyzing syllabus... This may take a few seconds.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentGrade = 3;
+let currentSubject = 'Math';
+
+document.getElementById('syllabusForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const grade = document.getElementById('grade').value;
+    const subject = document.getElementById('subject').value;
+    const syllabusText = document.getElementById('syllabusText').value;
+    
+    // Store for later use
+    currentGrade = parseInt(grade);
+    currentSubject = subject;
+    
+    // Show loading
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/analyze-syllabus', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                grade: parseInt(grade),
+                subject: subject,
+                syllabus_text: syllabusText
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Display results
+            displayResults(data.data);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Failed to analyze syllabus: ' + error.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+});
+
+function displayResults(syllabus) {
+    const resultsContent = document.getElementById('resultsContent');
+    
+    let html = `<div class="success-message">
+        Found ${syllabus.topics.length} main topics with ${syllabus.topics.reduce((sum, t) => sum + t.subtopics.length, 0)} subtopics
+    </div>`;
+    
+    html += '<div class="topics-list">';
+    syllabus.topics.forEach((topic, idx) => {
+        html += `
+            <div class="topic-card">
+                <h3>${idx + 1}. ${topic.name}</h3>
+                <ul class="subtopics-list">
+        `;
+        
+        topic.subtopics.forEach(subtopic => {
+            html += `
+                <li>
+                    <strong>${subtopic.name}</strong>
+                    <span class="badge badge-${subtopic.difficulty}">${subtopic.difficulty}</span>
+                    <br><small>${subtopic.description || ''}</small>
+                </li>
+            `;
+        });
+        
+        html += '</ul></div>';
+    });
+    html += '</div>';
+    
+    resultsContent.innerHTML = html;
+    document.getElementById('results').style.display = 'block';
+    
+    // Scroll to results
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function goToWorksheetBuilder() {
+    window.location.href = `/worksheet-builder?grade=${currentGrade}&subject=${currentSubject}`;
+}
+</script>
+{% endblock %}

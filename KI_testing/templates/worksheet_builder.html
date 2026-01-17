@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Worksheet Builder - Lera-KI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Worksheet Builder</h1>
+    <p>Select topics and build your custom worksheet</p>
+</div>
+
+{% if not syllabus %}
+<div class="alert alert-warning">
+    <strong>No syllabus found!</strong>
+    <p>Please <a href="/syllabus">analyze a syllabus</a> first before building worksheets.</p>
+</div>
+{% else %}
+
+<div class="builder-container">
+    <div class="builder-sidebar">
+        <h3>Available Topics</h3>
+        <p class="subtitle">Grade {{ grade }} {{ subject }}</p>
+        
+        <div id="topicsList" class="topics-sidebar">
+            {% for topic in syllabus.topics %}
+            <div class="topic-group">
+                <h4>{{ topic.name }}</h4>
+                {% for subtopic in topic.subtopics %}
+                <div class="subtopic-item" data-id="{{ subtopic.id }}" data-name="{{ subtopic.name }}">
+                    <span>{{ subtopic.name }}</span>
+                    <button class="btn-add" onclick="addQuestionBlock('{{ subtopic.id }}', '{{ subtopic.name }}')">+</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="builder-main">
+        <div class="worksheet-config">
+            <h3>Worksheet Configuration</h3>
+            
+            <div class="form-group">
+                <label for="worksheetTitle">Worksheet Title:</label>
+                <input type="text" id="worksheetTitle" value="Practice Worksheet" required>
+            </div>
+            
+            <div id="questionBlocks" class="question-blocks">
+                <p class="empty-state">Click + on topics to add question blocks</p>
+            </div>
+            
+            <button id="generateBtn" class="btn btn-success btn-large" onclick="generateWorksheet()" disabled>
+                Generate Worksheet
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="loading" class="loading" style="display: none;">
+    <div class="spinner"></div>
+    <p>Generating worksheet... This may take 10-20 seconds.</p>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+let questionBlocks = [];
+const grade = {{ grade }};
+const subject = "{{ subject }}";
+
+function addQuestionBlock(subtopicId, subtopicName) {
+    const blockId = Date.now();
+    
+    const block = {
+        id: blockId,
+        subtopic_id: subtopicId,
+        topic_name: subtopicName,
+        type: 'short_answer',
+        count: 5
+    };
+    
+    questionBlocks.push(block);
+    renderQuestionBlocks();
+    
+    document.getElementById('generateBtn').disabled = false;
+}
+
+function removeBlock(blockId) {
+    questionBlocks = questionBlocks.filter(b => b.id !== blockId);
+    renderQuestionBlocks();
+    
+    if (questionBlocks.length === 0) {
+        document.getElementById('generateBtn').disabled = true;
+    }
+}
+
+function updateBlock(blockId, field, value) {
+    const block = questionBlocks.find(b => b.id === blockId);
+    if (block) {
+        block[field] = value;
+    }
+}
+
+function renderQuestionBlocks() {
+    const container = document.getElementById('questionBlocks');
+    
+    if (questionBlocks.length === 0) {
+        container.innerHTML = '<p class="empty-state">Click + on topics to add question blocks</p>';
+        return;
+    }
+    
+    let html = '';
+    questionBlocks.forEach((block, idx) => {
+        html += `
+            <div class="question-block">
+                <div class="block-header">
+                    <span class="block-number">${idx + 1}</span>
+                    <h4>${block.topic_name}</h4>
+                    <button class="btn-remove" onclick="removeBlock(${block.id})">×</button>
+                </div>
+                
+                <div class="block-config">
+                    <div class="form-row">
+                        <label>Question Type:</label>
+                        <select onchange="updateBlock(${block.id}, 'type', this.value)">
+                            <option value="short_answer" ${block.type === 'short_answer' ? 'selected' : ''}>Short Answer</option>
+                            <option value="word_problem" ${block.type === 'word_problem' ? 'selected' : ''}>Word Problem</option>
+                            <option value="multiple_choice" ${block.type === 'multiple_choice' ? 'selected' : ''}>Multiple Choice</option>
+                            <option value="true_false" ${block.type === 'true_false' ? 'selected' : ''}>True/False</option>
+                            <option value="fill_in_blank" ${block.type === 'fill_in_blank' ? 'selected' : ''}>Fill in Blank</option>
+                            <option value="matching" ${block.type === 'matching' ? 'selected' : ''}>Matching</option>
+                            <option value="show_your_work" ${block.type === 'show_your_work' ? 'selected' : ''}>Show Your Work</option>
+                            <option value="number_line" ${block.type === 'number_line' ? 'selected' : ''}>Number Line</option>
+                            <option value="ordering" ${block.type === 'ordering' ? 'selected' : ''}>Ordering</option>
+                            <option value="circle_correct" ${block.type === 'circle_correct' ? 'selected' : ''}>Circle Correct</option>
+                            
+                            <optgroup label="Geometry">
+                                <option value="draw_shapes" ${block.type === 'draw_shapes' ? 'selected' : ''}>Draw Shapes</option>
+                                <option value="identify_shapes" ${block.type === 'identify_shapes' ? 'selected' : ''}>Identify Shapes</option>
+                                <option value="partition_shapes" ${block.type === 'partition_shapes' ? 'selected' : ''}>Partition Shapes</option>
+                                <option value="area_perimeter_grid" ${block.type === 'area_perimeter_grid' ? 'selected' : ''}>Area/Perimeter Grid</option>
+                            </optgroup>
+                            
+                            <optgroup label="Time">
+                                <option value="tell_time" ${block.type === 'tell_time' ? 'selected' : ''}>Tell Time (Read Clock)</option>
+                                <option value="draw_time" ${block.type === 'draw_time' ? 'selected' : ''}>Draw Time (Draw Hands)</option>
+                            </optgroup>
+                            
+                            <optgroup label="Data & Charts">
+                                <option value="bar_chart" ${block.type === 'bar_chart' ? 'selected' : ''}>Bar Chart</option>
+                                <option value="pie_chart" ${block.type === 'pie_chart' ? 'selected' : ''}>Pie Chart</option>
+                                <option value="line_chart" ${block.type === 'line_chart' ? 'selected' : ''}>Line Chart</option>
+                                <option value="data_table" ${block.type === 'data_table' ? 'selected' : ''}>Data Table</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label>Number of Questions:</label>
+                        <input type="number" value="${block.count}" min="1" max="20" 
+                               onchange="updateBlock(${block.id}, 'count', parseInt(this.value))">
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+async function generateWorksheet() {
+    const title = document.getElementById('worksheetTitle').value;
+    
+    if (!title || questionBlocks.length === 0) {
+        alert('Please add a title and at least one question block');
+        return;
+    }
+    
+    document.getElementById('loading').style.display = 'block';
+    
+    try {
+        const response = await fetch('/api/generate-worksheet', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                grade: grade,
+                subject: subject,
+                title: title,
+                question_blocks: questionBlocks
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Worksheet generated successfully!\n\nCheck the worksheets/ folder for your file.');
+            // Clear the blocks
+            questionBlocks = [];
+            renderQuestionBlocks();
+            document.getElementById('generateBtn').disabled = true;
+            document.getElementById('worksheetTitle').value = 'Practice Worksheet';
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Failed to generate worksheet: ' + error.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
