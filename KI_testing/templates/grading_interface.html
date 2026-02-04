@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Grade Worksheet - Lera-KI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📝 Grade Worksheet</h1>
+    <p>Paste student answers for AI-powered grading</p>
+</div>
+
+<div class="grading-container">
+    <div class="grading-form">
+        <form id="gradingForm">
+            <div class="form-group">
+                <label for="grade">Grade Level</label>
+                <input type="number" id="grade" name="grade" min="1" max="12" value="3" required>
+            </div>
+
+            <div class="form-group">
+                <label for="subject">Subject</label>
+                <input type="text" id="subject" name="subject" value="Math" required>
+            </div>
+
+            <div class="form-group">
+                <label for="worksheetTitle">Worksheet Title/Topic</label>
+                <input type="text" id="worksheetTitle" placeholder="e.g., Addition and Subtraction Practice" required>
+            </div>
+
+            <div class="form-group">
+                <label for="studentAnswers">Student Answers</label>
+                <textarea id="studentAnswers" rows="15" required placeholder="Paste student answers here. Format examples:
+
+1. 5 + 3 = 8
+2. 12 - 7 = 5
+3. Word Problem: Sarah has 15 apples, she gives away 6. Answer: 9 apples
+
+OR use question-answer pairs:
+Q: What is 8 + 4?
+A: 12
+
+The LLM will understand various formats!"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="answerKey">Answer Key (Optional)</label>
+                <textarea id="answerKey" rows="8" placeholder="Provide correct answers if available:
+
+1. 8
+2. 5
+3. 9 apples
+
+This helps the AI verify accuracy more precisely."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-large">🎯 Grade Worksheet</button>
+        </form>
+    </div>
+
+    <div id="gradingResults" class="results-container" style="display: none;">
+        <h2>Grading Results</h2>
+        <div id="resultsContent"></div>
+        <button onclick="window.print()" class="btn btn-secondary">🖨️ Print Results</button>
+        <button onclick="resetForm()" class="btn btn-secondary">Grade Another</button>
+    </div>
+</div>
+
+<div id="loading" class="loading" style="display: none;">
+    <div class="spinner"></div>
+    <p>Grading worksheet... This may take 10-20 seconds.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('gradingForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const grade = document.getElementById('grade').value;
+    const subject = document.getElementById('subject').value;
+    const worksheetTitle = document.getElementById('worksheetTitle').value;
+    const studentAnswers = document.getElementById('studentAnswers').value;
+    const answerKey = document.getElementById('answerKey').value;
+    
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('gradingResults').style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/grade-worksheet', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                grade: parseInt(grade),
+                subject: subject,
+                worksheet_title: worksheetTitle,
+                student_answers: studentAnswers,
+                answer_key: answerKey || null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayGradingResults(data.data);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Failed to grade worksheet: ' + error.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+});
+
+function displayGradingResults(results) {
+    const resultsContent = document.getElementById('resultsContent');
+    
+    let html = `
+        <div class="grading-summary">
+            <div class="score-card ${results.percentage >= 80 ? 'excellent' : results.percentage >= 60 ? 'good' : 'needs-improvement'}">
+                <h3>Overall Score</h3>
+                <div class="score-large">${results.score}/${results.total_questions}</div>
+                <div class="percentage">${results.percentage}%</div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Correct</span>
+                    <span class="stat-value correct">✓ ${results.correct_count}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Incorrect</span>
+                    <span class="stat-value incorrect">✗ ${results.incorrect_count}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Partial</span>
+                    <span class="stat-value partial">◐ ${results.partial_count}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detailed-feedback">
+            <h3>Detailed Feedback</h3>
+    `;
+    
+    results.questions.forEach((q, idx) => {
+        const statusClass = q.status === 'correct' ? 'correct' : 
+                           q.status === 'incorrect' ? 'incorrect' : 'partial';
+        const icon = q.status === 'correct' ? '✓' : 
+                    q.status === 'incorrect' ? '✗' : '◐';
+        
+        html += `
+            <div class="question-feedback ${statusClass}">
+                <div class="question-header">
+                    <span class="question-number">Question ${idx + 1}</span>
+                    <span class="status-badge ${statusClass}">${icon} ${q.status.toUpperCase()}</span>
+                    <span class="points">${q.points_earned}/${q.points_possible} pts</span>
+                </div>
+                
+                <div class="question-content">
+                    <p><strong>Question:</strong> ${q.question || 'N/A'}</p>
+                    <p><strong>Student Answer:</strong> ${q.student_answer}</p>
+                    ${q.correct_answer ? `<p><strong>Correct Answer:</strong> ${q.correct_answer}</p>` : ''}
+                </div>
+                
+                <div class="feedback-text">
+                    <strong>Feedback:</strong> ${q.feedback}
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+        </div>
+        
+        <div class="teacher-notes">
+            <h3>📋 Teacher Notes</h3>
+            <p>${results.overall_feedback}</p>
+            ${results.recommendations ? `
+                <h4>Recommendations:</h4>
+                <ul>
+                    ${results.recommendations.map(r => `<li>${r}</li>`).join('')}
+                </ul>
+            ` : ''}
+        </div>
+    `;
+    
+    resultsContent.innerHTML = html;
+    document.getElementById('gradingResults').style.display = 'block';
+    document.getElementById('gradingResults').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetForm() {
+    document.getElementById('gradingForm').reset();
+    document.getElementById('gradingResults').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+{% endblock %}

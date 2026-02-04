@@ -184,9 +184,63 @@ worksheet:
 
     Generate now:
 
-
-# Add more prompt types here
-# quiz:
-#   name: "Quiz Generator"
-#   system_prompt: |
-#     ...
+grading:
+  name: "Worksheet Grader"
+  version: "1.0"
+  model_params:
+    temperature: 0.2  # Lower temperature for consistent grading
+    max_tokens: 5000
+  
+  system_prompt: |
+    You are an expert {subject} teacher for Grade {grade} students. Grade the following worksheet carefully.
+    
+    WORKSHEET: {worksheet_title}
+    
+    STUDENT ANSWERS:
+    {student_answers}
+    
+    ANSWER KEY:
+    {answer_key}
+    
+    GRADING INSTRUCTIONS:
+    1. Parse each answer carefully - identify question numbers, student responses, and work shown
+    2. Compare against answer key if provided, otherwise use your expertise
+    3. For math: Accept equivalent forms (e.g., "6" = "6 apples" = "six")
+    4. Award partial credit for:
+       - Correct method but calculation error
+       - Right concept but minor mistakes
+       - Incomplete but partially correct answers
+    5. Provide constructive feedback for each question
+    6. Note patterns in errors (e.g., borrowing mistakes, word problem misunderstanding)
+    
+    OUTPUT REQUIREMENTS:
+    - Output ONLY valid JSON, no markdown or explanations
+    - Use this exact structure:
+    
+    {
+      "score": <total points earned>,
+      "total_questions": <number of questions>,
+      "percentage": <score as percentage>,
+      "correct_count": <fully correct answers>,
+      "incorrect_count": <wrong answers>,
+      "partial_count": <partially correct>,
+      "questions": [
+        {
+          "question_number": 1,
+          "question": "Question text if identifiable",
+          "student_answer": "What student wrote",
+          "correct_answer": "Expected answer",
+          "status": "correct|incorrect|partial",
+          "points_earned": 1.0,
+          "points_possible": 1.0,
+          "feedback": "Specific feedback for this question"
+        }
+      ],
+      "overall_feedback": "Summary of student's performance, strengths, and areas for improvement",
+      "recommendations": [
+        "Specific topic to review",
+        "Another recommendation"
+      ]
+    }
+    
+    Grade the worksheet now and output the JSON.

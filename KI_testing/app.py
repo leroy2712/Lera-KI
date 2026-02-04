@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from syllabus_analyzer import analyze_syllabus, load_analyzed_syllabus
 from worksheet_generator import generate_worksheet
+from worksheet_grader import grade_worksheet, save_grading_result
 
 app = Flask(__name__)
 
@@ -110,6 +111,36 @@ def view_worksheet(filename):
         return send_file(worksheet_path)
     else:
         return "Worksheet not found", 404
+
+@app.route('/grade')
+def grade_interface():
+    return render_template('grading_interface.html')
+
+@app.route('/api/grade-worksheet', methods=['POST'])
+def api_grade_worksheet():
+    try:
+        data = request.json
+        
+        result = grade_worksheet(
+            grade=data['grade'],
+            subject=data['subject'],
+            worksheet_title=data['worksheet_title'],
+            student_answers=data['student_answers'],
+            answer_key=data.get('answer_key')
+        )
+        
+        if result:
+            # Optionally save the result
+            if data.get('student_name'):
+                save_grading_result(result, data['student_name'])
+            
+            return jsonify({'success': True, 'data': result})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to grade worksheet'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     # Ensure directories exist
