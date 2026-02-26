@@ -84,13 +84,13 @@ def grade_worksheet_vision(grade, subject, worksheet_title, images, answer_key=N
         "max_tokens": model_params['max_tokens']
     }
     
-    print(f"📝 Grading '{worksheet_title}' ({len(images)} pages) using Nemotron Nano 12B VL...")
+    print(f"Grading '{worksheet_title}' ({len(images)} pages) using Nemotron Nano 12B VL...")
     
     max_retries = 3
     for attempt in range(max_retries):
         try:
             if attempt > 0:
-                print(f"🔄 Retrying API call (Attempt {attempt + 1}/{max_retries})...")
+                print(f"Retrying API call (Attempt {attempt + 1}/{max_retries})...")
                 
             response = requests.post(url, headers=headers, json=data, timeout=60)
             response.raise_for_status()
@@ -101,7 +101,7 @@ def grade_worksheet_vision(grade, subject, worksheet_title, images, answer_key=N
             if 'error' in result:
                 error_msg = result['error'].get('message', 'Unknown API Error')
                 error_code = result['error'].get('code')
-                print(f"⚠️ OpenRouter API Error: {error_msg} (Code: {error_code})")
+                print(f"OpenRouter API Error: {error_msg} (Code: {error_code})")
                 
                 # Retry on 502 Bad Gateway / Network connection lost
                 if error_code in [502, 503, 429] and attempt < max_retries - 1:
@@ -111,7 +111,7 @@ def grade_worksheet_vision(grade, subject, worksheet_title, images, answer_key=N
                 
             # 2. Check if 'choices' exists to prevent the KeyError
             if 'choices' not in result or len(result['choices']) == 0:
-                print(f"❌ Unexpected API Response Format (No 'choices'):\n{json.dumps(result, indent=2)}")
+                print(f"Unexpected API Response Format (No 'choices'):\n{json.dumps(result, indent=2)}")
                 return None
                 
             raw_content = result['choices'][0]['message']['content']
@@ -129,11 +129,11 @@ def grade_worksheet_vision(grade, subject, worksheet_title, images, answer_key=N
                 'subject': subject
             }
             
-            print("✓ Grading completed successfully!")
+            print("Grading completed successfully!")
             return grading_data
             
         except requests.exceptions.RequestException as e:
-            print(f"⚠️ Network/Request Error: {str(e)}")
+            print(f"Network/Request Error: {str(e)}")
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
@@ -141,17 +141,17 @@ def grade_worksheet_vision(grade, subject, worksheet_title, images, answer_key=N
                 print(f"Response Details: {response.text}")
             return None
         except json.JSONDecodeError as e:
-            print(f"❌ Failed to parse LLM response as JSON. Error: {str(e)}")
+            print(f"Failed to parse LLM response as JSON. Error: {str(e)}")
             if 'raw_content' in locals():
                 print(f"Raw Output:\n{raw_content}")
             return None
         except Exception as e:
             import traceback
-            print(f"❌ Unexpected Error: {str(e)}")
+            print(f"Unexpected Error: {str(e)}")
             print(traceback.format_exc())
             return None
             
-    print("❌ All API retry attempts failed.")
+    print("All API retry attempts failed.")
     return None
 
 def save_grading_result(result_data, student_name="student"):
