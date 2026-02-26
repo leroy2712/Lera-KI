@@ -3,8 +3,8 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>📝 Grade Worksheet</h1>
-    <p>Paste student answers for AI-powered grading</p>
+    <h1>Grade Worksheet</h1>
+    <p>Upload or snap photos of student answers for AI-powered grading</p>
 </div>
 
 <div class="grading-container">
@@ -26,18 +26,19 @@
             </div>
 
             <div class="form-group">
-                <label for="studentAnswers">Student Answers</label>
-                <textarea id="studentAnswers" rows="15" required placeholder="Paste student answers here. Format examples:
-
-1. 5 + 3 = 8
-2. 12 - 7 = 5
-3. Word Problem: Sarah has 15 apples, she gives away 6. Answer: 9 apples
-
-OR use question-answer pairs:
-Q: What is 8 + 4?
-A: 12
-
-The LLM will understand various formats!"></textarea>
+                <label>Student Worksheet Images</label>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('galleryInput').click()">Browse Gallery</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('cameraInput').click()">Take Photo</button>
+                </div>
+                
+                <input type="file" id="galleryInput" accept="image/png, image/jpeg, image/jpg, image/webp" multiple style="display: none;">
+                <input type="file" id="cameraInput" accept="image/png, image/jpeg, image/jpg, image/webp" capture="environment" style="display: none;">
+                
+                <div id="imagePreviewContainer" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+                
+                <small style="color: #666; display: block; margin-top: 10px;">You can mix gallery uploads and fresh camera photos. Add as many pages as needed.</small>
             </div>
 
             <div class="form-group">
@@ -51,14 +52,14 @@ The LLM will understand various formats!"></textarea>
 This helps the AI verify accuracy more precisely."></textarea>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-large">🎯 Grade Worksheet</button>
+            <button type="submit" class="btn btn-primary btn-large">Grade Worksheet</button>
         </form>
     </div>
 
     <div id="gradingResults" class="results-container" style="display: none;">
         <h2>Grading Results</h2>
         <div id="resultsContent"></div>
-        <button onclick="window.print()" class="btn btn-secondary">🖨️ Print Results</button>
+        <button onclick="window.print()" class="btn btn-secondary">Print Results</button>
         <button onclick="resetForm()" class="btn btn-secondary">Grade Another</button>
     </div>
 </div>
@@ -71,29 +72,83 @@ This helps the AI verify accuracy more precisely."></textarea>
 
 {% block scripts %}
 <script>
+// Array to hold all uploaded/captured files
+let selectedFiles = [];
+
+const galleryInput = document.getElementById('galleryInput');
+const cameraInput = document.getElementById('cameraInput');
+const previewContainer = document.getElementById('imagePreviewContainer');
+
+// Append new files to our array
+function addFiles(files) {
+    for (let i = 0; i < files.length; i++) {
+        selectedFiles.push(files[i]);
+    }
+    renderPreviews();
+    
+    // Clear the inputs so the user can select the exact same file/take a new photo again if needed
+    galleryInput.value = '';
+    cameraInput.value = '';
+}
+
+galleryInput.addEventListener('change', (e) => addFiles(e.target.files));
+cameraInput.addEventListener('change', (e) => addFiles(e.target.files));
+
+// Remove file from the array
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    renderPreviews();
+}
+
+// Render the visual badges
+function renderPreviews() {
+    previewContainer.innerHTML = '';
+    selectedFiles.forEach((file, index) => {
+        const badge = document.createElement('div');
+        badge.style.cssText = 'background: #e2e8f0; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #334155;';
+        
+        const fileName = document.createElement('span');
+        fileName.textContent = `Page ${index + 1}: ${file.name.substring(0, 15)}...`;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = 'X';
+        removeBtn.style.cssText = 'background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; padding: 0;';
+        removeBtn.onclick = () => removeFile(index);
+        
+        badge.appendChild(fileName);
+        badge.appendChild(removeBtn);
+        previewContainer.appendChild(badge);
+    });
+}
+
 document.getElementById('gradingForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const grade = document.getElementById('grade').value;
-    const subject = document.getElementById('subject').value;
-    const worksheetTitle = document.getElementById('worksheetTitle').value;
-    const studentAnswers = document.getElementById('studentAnswers').value;
-    const answerKey = document.getElementById('answerKey').value;
+    // Custom validation since the file inputs are hidden and don't use 'required' anymore
+    if (selectedFiles.length === 0) {
+        alert("Please upload or take a photo of at least one worksheet page.");
+        return;
+    }
     
     document.getElementById('loading').style.display = 'block';
     document.getElementById('gradingResults').style.display = 'none';
     
+    const formData = new FormData();
+    formData.append('grade', document.getElementById('grade').value);
+    formData.append('subject', document.getElementById('subject').value);
+    formData.append('worksheet_title', document.getElementById('worksheetTitle').value);
+    formData.append('answer_key', document.getElementById('answerKey').value);
+    
+    // Append all files from our custom array
+    for (let i = 0; i < selectedFiles.length; i++) {
+        formData.append('student_images', selectedFiles[i]);
+    }
+    
     try {
         const response = await fetch('/api/grade-worksheet', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                grade: parseInt(grade),
-                subject: subject,
-                worksheet_title: worksheetTitle,
-                student_answers: studentAnswers,
-                answer_key: answerKey || null
-            })
+            body: formData 
         });
         
         const data = await response.json();
@@ -124,15 +179,15 @@ function displayGradingResults(results) {
             <div class="stats-grid">
                 <div class="stat-item">
                     <span class="stat-label">Correct</span>
-                    <span class="stat-value correct">✓ ${results.correct_count}</span>
+                    <span class="stat-value correct">${results.correct_count}</span>
                 </div>
                 <div class="stat-item">
                     <span class="stat-label">Incorrect</span>
-                    <span class="stat-value incorrect">✗ ${results.incorrect_count}</span>
+                    <span class="stat-value incorrect">${results.incorrect_count}</span>
                 </div>
                 <div class="stat-item">
                     <span class="stat-label">Partial</span>
-                    <span class="stat-value partial">◐ ${results.partial_count}</span>
+                    <span class="stat-value partial">${results.partial_count}</span>
                 </div>
             </div>
         </div>
@@ -144,14 +199,12 @@ function displayGradingResults(results) {
     results.questions.forEach((q, idx) => {
         const statusClass = q.status === 'correct' ? 'correct' : 
                            q.status === 'incorrect' ? 'incorrect' : 'partial';
-        const icon = q.status === 'correct' ? '✓' : 
-                    q.status === 'incorrect' ? '✗' : '◐';
         
         html += `
             <div class="question-feedback ${statusClass}">
                 <div class="question-header">
                     <span class="question-number">Question ${idx + 1}</span>
-                    <span class="status-badge ${statusClass}">${icon} ${q.status.toUpperCase()}</span>
+                    <span class="status-badge ${statusClass}">${q.status.toUpperCase()}</span>
                     <span class="points">${q.points_earned}/${q.points_possible} pts</span>
                 </div>
                 
@@ -172,7 +225,7 @@ function displayGradingResults(results) {
         </div>
         
         <div class="teacher-notes">
-            <h3>📋 Teacher Notes</h3>
+            <h3>Teacher Notes</h3>
             <p>${results.overall_feedback}</p>
             ${results.recommendations ? `
                 <h4>Recommendations:</h4>
@@ -191,6 +244,11 @@ function displayGradingResults(results) {
 function resetForm() {
     document.getElementById('gradingForm').reset();
     document.getElementById('gradingResults').style.display = 'none';
+    
+    // Clear the file array and preview UI
+    selectedFiles = [];
+    renderPreviews();
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 </script>

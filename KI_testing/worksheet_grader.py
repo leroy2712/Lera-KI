@@ -1,43 +1,56 @@
 import requests
 import json
 import os
+import base64
 import yaml
+import time
+from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
-from datetime import datetime
 
-# Load .env file
-env_path = Path('.env')
+# Load .env file from project root
+env_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 # Load prompts from YAML
-prompts_path = Path('prompts.yaml')
+prompts_path = Path(__file__).parent / 'prompts.yaml'
 with open(prompts_path, 'r', encoding='utf-8') as f:
     PROMPTS = yaml.safe_load(f)
 
-def grade_worksheet(grade, subject, worksheet_title, student_answers, answer_key=None):
+def clean_json_response(content):
+    """Safely extract JSON from the LLM's raw text response."""
+    content = content.strip()
+    if content.startswith('```'):
+        lines = content.split('\n')
+        # Fixed: check the first string in the list, not the list itself
+        if lines.startswith('```'): lines = lines[1:]
+        if lines[-1].startswith('```'): lines = lines[:-1]
+        content = '\n'.join(lines)
+    
+    start_idx = content.find('{')
+    end_idx = content.rfind('}')
+    if start_idx != -1 and end_idx != -1:
+        content = content[start_idx:end_idx + 1]
+    return content
+
+def grade_worksheet_vision(grade, subject, worksheet_title, images, answer_key=None):
     """
-    Grade a student's worksheet using LLM.
-    
-    Args:
-        grade (int): Grade level
-        subject (str): Subject name
-        worksheet_title (str): Title/topic of worksheet
-        student_answers (str): Raw text of student answers
-        answer_key (str, optional): Correct answers if available
-    
-    Returns:
-        dict: Grading results with scores and feedback
+    Grades a multipage worksheet from a list of images using Nvidia Nemotron Nano 12B Vision,
+    with automatic retries for dropped connections.
     """
     url = "https://openrouter.ai/api/v1/chat/completions"
     
-    # Format prompt with grading instructions
-    prompt = PROMPTS['grading']['system_prompt'].format(
+    if not answer_key or not answer_key.strip():
+        answer_key = "Not provided. Evaluate correctness based on standard expectations."
+
+    from string import Template
+    prompt_template = Template(PROMPTS['grading_vision']['system_prompt'])
+    prompt_text = prompt_template.safe_substitute(
         grade=grade,
         subject=subject,
         worksheet_title=worksheet_title,
-        student_answers=student_answers,
-        answer_key=answer_key if answer_key else "No answer key provided - use your knowledge to verify correctness"
+        num_images=len(images), # Dynamically pass the number of images
+        answer_key=answer_key
     )
     
     headers = {
@@ -45,103 +58,112 @@ def grade_worksheet(grade, subject, worksheet_title, student_answers, answer_key
         "Content-Type": "application/json"
     }
     
-    model_params = PROMPTS['grading']['model_params']
+    model_params = PROMPTS['grading_vision']['model_params']
+    
+    # 1. Build the base message content with the text prompt
+    message_content = [{"type": "text", "text": prompt_text}]
+    
+    # 2. Loop through all provided images and append them to the message content
+    for img_data in images:
+        message_content.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:{img_data['mime_type']};base64,{img_data['base64']}"
+            }
+        })
     
     data = {
-        "model": "google/gemma-3-27b-it:free",
-        "messages": [{"role": "user", "content": prompt}],
+        "model": "nvidia/nemotron-nano-12b-v2-vl:free",
+        "messages": [
+            {
+                "role": "user",
+                "content": message_content
+            }
+        ],
         "temperature": model_params['temperature'],
         "max_tokens": model_params['max_tokens']
     }
     
-    print(f"Grading Grade {grade} {subject} worksheet: {worksheet_title}...")
+    print(f"📝 Grading '{worksheet_title}' ({len(images)} pages) using Nemotron Nano 12B VL...")
     
-    response = requests.post(url, headers=headers, json=data)
-    
-    if response.status_code == 200:
-        result = response.json()
-        content = result['choices'][0]['message']['content'].strip()
-        
-        # Remove markdown code blocks if present
-        if content.startswith('```'):
-            content = content.split('```', 2)[1]
-            if content.startswith('json'):
-                content = content[4:]
-            content = content.strip()
-        
+    max_retries = 3
+    for attempt in range(max_retries):
         try:
-            grading_data = json.loads(content)
+            if attempt > 0:
+                print(f"🔄 Retrying API call (Attempt {attempt + 1}/{max_retries})...")
+                
+            response = requests.post(url, headers=headers, json=data, timeout=60)
+            response.raise_for_status()
             
-            # Add metadata
+            result = response.json()
+            
+            # 1. Check if OpenRouter returned an error inside the JSON
+            if 'error' in result:
+                error_msg = result['error'].get('message', 'Unknown API Error')
+                error_code = result['error'].get('code')
+                print(f"⚠️ OpenRouter API Error: {error_msg} (Code: {error_code})")
+                
+                # Retry on 502 Bad Gateway / Network connection lost
+                if error_code in [502, 503, 429] and attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
+                return None
+                
+            # 2. Check if 'choices' exists to prevent the KeyError
+            if 'choices' not in result or len(result['choices']) == 0:
+                print(f"❌ Unexpected API Response Format (No 'choices'):\n{json.dumps(result, indent=2)}")
+                return None
+                
+            raw_content = result['choices'][0]['message']['content']
+            
+            cleaned_json_string = clean_json_response(raw_content)
+            grading_data = json.loads(cleaned_json_string)
+            
+            # Inject metadata
             grading_data['metadata'] = {
-                'graded_at': datetime.now().isoformat(),
+                'model': 'nvidia/nemotron-nano-12b-v2-vl:free',
                 'tokens_used': result['usage']['total_tokens'],
+                'prompt_tokens': result['usage']['prompt_tokens'],
+                'completion_tokens': result['usage']['completion_tokens'],
                 'grade_level': grade,
-                'subject': subject,
-                'worksheet_title': worksheet_title
+                'subject': subject
             }
             
-            # Calculate costs
-            input_cost = (result['usage']['prompt_tokens'] / 1_000_000) * 0.040
-            output_cost = (result['usage']['completion_tokens'] / 1_000_000) * 0.150
-            total_cost = input_cost + output_cost
-            
-            print(f"✅ Grading complete!")
-            print(f"Score: {grading_data['score']}/{grading_data['total_questions']} ({grading_data['percentage']}%)")
-            print(f"Tokens used: {result['usage']['total_tokens']}")
-            print(f"Cost: ${total_cost:.6f}")
-            
+            print("✓ Grading completed successfully!")
             return grading_data
             
-        except json.JSONDecodeError as e:
-            print(f"Error: Failed to parse JSON response")
-            print(f"Response: {content[:500]}")
+        except requests.exceptions.RequestException as e:
+            print(f"⚠️ Network/Request Error: {str(e)}")
+            if attempt < max_retries - 1:
+                time.sleep(2)
+                continue
+            if 'response' in locals() and response.text:
+                print(f"Response Details: {response.text}")
             return None
-    else:
-        print(f"Error: {response.status_code}")
-        print(response.text)
-        return None
+        except json.JSONDecodeError as e:
+            print(f"❌ Failed to parse LLM response as JSON. Error: {str(e)}")
+            if 'raw_content' in locals():
+                print(f"Raw Output:\n{raw_content}")
+            return None
+        except Exception as e:
+            import traceback
+            print(f"❌ Unexpected Error: {str(e)}")
+            print(traceback.format_exc())
+            return None
+            
+    print("❌ All API retry attempts failed.")
+    return None
 
-def save_grading_result(grading_data, student_name=None):
-    """Save grading results to JSON file."""
-    Path('gradings').mkdir(exist_ok=True)
+def save_grading_result(result_data, student_name="student"):
+    results_dir = Path(__file__).parent / 'grading_results'
+    results_dir.mkdir(exist_ok=True)
     
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    student_part = f"_{student_name.replace(' ', '_')}" if student_name else ""
-    filename = f"gradings/grading_{grading_data['metadata']['grade_level']}_{timestamp}{student_part}.json"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_name = "".join(c if c.isalnum() else "_" for c in student_name)
+    filename = f"grade_{safe_name}_{timestamp}.json"
     
-    with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(grading_data, f, indent=2, ensure_ascii=False)
-    
-    print(f"Saved grading results to {filename}")
-    return filename
-
-if __name__ == "__main__":
-    # Test example
-    sample_answers = """
-1. 5 + 3 = 8
-2. 12 - 7 = 5
-3. 15 - 8 = 6
-4. Word Problem: Sarah has 10 apples. She gives 4 to her friend. How many does she have left?
-   Answer: 6 apples
-5. 20 + 15 = 35
-    """
-    
-    sample_key = """
-1. 8
-2. 5
-3. 7
-4. 6 apples
-5. 35
-    """
-    
-    result = grade_worksheet(
-        grade=3,
-        subject="Math",
-        worksheet_title="Addition and Subtraction Practice",
-        student_answers=sample_answers,
-        answer_key=sample_key
-    )
-    
-    if result:
-        save_grading_result(result, student_name="Test Student")
+    file_path = results_dir / filename
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(result_data, f, indent=4)
+        
+    return str(file_path)

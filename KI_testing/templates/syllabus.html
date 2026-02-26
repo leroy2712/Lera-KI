@@ -5,48 +5,52 @@
 {% block content %}
 <div class="page-header">
     <h1>Syllabus Analyzer</h1>
-    <p>Paste your syllabus below and we'll structure it for worksheet generation</p>
+    <p>Upload your syllabus document or paste the text directly</p>
 </div>
 
 <div class="form-container">
     <form id="syllabusForm">
-        <div class="form-group">
-            <label for="grade">Grade Level:</label>
-            <input type="number" id="grade" name="grade" min="1" max="12" value="3" required>
+        <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div>
+                <label for="grade">Grade Level:</label>
+                <input type="number" id="grade" name="grade" min="1" max="12" value="3" required>
+            </div>
+            <div>
+                <label for="subject">Subject:</label>
+                <input type="text" id="subject" name="subject" value="Math" required>
+            </div>
         </div>
 
         <div class="form-group">
-            <label for="subject">Subject:</label>
-            <input type="text" id="subject" name="subject" value="Math" required>
+            <label>Upload Syllabus Document</label>
+            <div class="upload-zone" id="dropZone" onclick="document.getElementById('syllabusFile').click()">
+                <i data-lucide="upload-cloud"></i>
+                <p id="uploadText">Drag & drop syllabus file here or <strong>browse</strong></p>
+                <small>Supports .PDF, .DOCX, .TXT</small>
+                <input type="file" id="syllabusFile" accept=".pdf,.docx,.txt" style="display: none;">
+            </div>
         </div>
+
+        <div class="divider"><span>OR</span></div>
 
         <div class="form-group">
-            <label for="syllabusText">Syllabus Content:</label>
-            <textarea id="syllabusText" name="syllabusText" rows="15" required placeholder="Example:
-
-Numbers and Operations
-- adding and subtracting within 1,000
-- place value of ones, tens and hundreds
-- rounding numbers to the nearest 10 or 100
-
-Geometry
-- classification of shapes by their properties
-- area and perimeter of rectangles"></textarea>
+            <label for="syllabusText">Paste Syllabus Content:</label>
+            <textarea id="syllabusText" name="syllabusText" rows="6" placeholder="Paste text here if you don't have a file..."></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-large">Analyze Syllabus</button>
+        <button type="submit" class="btn btn-primary btn-large" style="width: 100%;">Analyze Syllabus</button>
     </form>
 </div>
 
 <div id="results" class="results-container" style="display: none;">
     <h2>Analysis Results</h2>
     <div id="resultsContent"></div>
-    <button onclick="goToWorksheetBuilder()" class="btn btn-success btn-large">Continue to Worksheet Builder →</button>
+    <button onclick="goToWorksheetBuilder()" class="btn btn-success btn-large" style="margin-top: 1.5rem;">Continue to Builder <i data-lucide="arrow-right"></i></button>
 </div>
 
 <div id="loading" class="loading" style="display: none;">
     <div class="spinner"></div>
-    <p>Analyzing syllabus... This may take a few seconds.</p>
+    <p style="margin-top: 1rem; font-weight: 500;">Reading syllabus and extracting topics...</p>
 </div>
 {% endblock %}
 
@@ -55,39 +59,78 @@ Geometry
 let currentGrade = 3;
 let currentSubject = 'Math';
 
+// File Upload UI Logic
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('syllabusFile');
+const uploadText = document.getElementById('uploadText');
+
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        updateFileName();
+    }
+});
+
+fileInput.addEventListener('change', updateFileName);
+
+function updateFileName() {
+    if (fileInput.files.length > 0) {
+        uploadText.innerHTML = `Selected: <strong>${fileInput.files[0].name}</strong>`;
+        dropZone.style.borderColor = 'var(--secondary)';
+        dropZone.style.background = '#F0FDFA'; // Light teal
+        lucide.createIcons(); // Refresh icons if needed
+    }
+}
+
+// Form Submission Logic
 document.getElementById('syllabusForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const grade = document.getElementById('grade').value;
-    const subject = document.getElementById('subject').value;
+    currentGrade = parseInt(document.getElementById('grade').value);
+    currentSubject = document.getElementById('subject').value;
     const syllabusText = document.getElementById('syllabusText').value;
     
-    // Store for later use
-    currentGrade = parseInt(grade);
-    currentSubject = subject;
-    
-    // Show loading
-    document.getElementById('loading').style.display = 'block';
+    if (fileInput.files.length === 0 && !syllabusText.trim()) {
+        alert("Please either upload a file or paste syllabus text.");
+        return;
+    }
+
+    document.getElementById('loading').style.display = 'flex';
     document.getElementById('results').style.display = 'none';
+    
+    // Switch to FormData to handle files
+    const formData = new FormData();
+    formData.append('grade', currentGrade);
+    formData.append('subject', currentSubject);
+    
+    if (fileInput.files.length > 0) {
+        formData.append('file', fileInput.files[0]);
+    } else {
+        formData.append('syllabus_text', syllabusText);
+    }
     
     try {
         const response = await fetch('/api/analyze-syllabus', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                grade: parseInt(grade),
-                subject: subject,
-                syllabus_text: syllabusText
-            })
+            body: formData // No headers needed, browser handles multipart/form-data
         });
         
         const data = await response.json();
         
         if (data.success) {
-            // Display results
             displayResults(data.data);
+            lucide.createIcons();
         } else {
             alert('Error: ' + data.error);
         }
@@ -101,24 +144,27 @@ document.getElementById('syllabusForm').addEventListener('submit', async (e) => 
 function displayResults(syllabus) {
     const resultsContent = document.getElementById('resultsContent');
     
-    let html = `<div class="success-message">
+    let html = `<div style="background: var(--primary-light); color: var(--primary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; font-weight: 500;">
         Found ${syllabus.topics.length} main topics with ${syllabus.topics.reduce((sum, t) => sum + t.subtopics.length, 0)} subtopics
     </div>`;
     
-    html += '<div class="topics-list">';
+    html += '<div style="display: grid; gap: 1.5rem;">';
     syllabus.topics.forEach((topic, idx) => {
         html += `
             <div class="topic-card">
-                <h3>${idx + 1}. ${topic.name}</h3>
-                <ul class="subtopics-list">
+                <h3 style="color: var(--dark); margin-bottom: 1rem;">${idx + 1}. ${topic.name}</h3>
+                <ul style="list-style: none;">
         `;
         
         topic.subtopics.forEach(subtopic => {
+            const badgeColor = subtopic.difficulty === 'easy' ? '#10B981' : (subtopic.difficulty === 'medium' ? '#F59E0B' : '#EF4444');
             html += `
-                <li>
-                    <strong>${subtopic.name}</strong>
-                    <span class="badge badge-${subtopic.difficulty}">${subtopic.difficulty}</span>
-                    <br><small>${subtopic.description || ''}</small>
+                <li style="padding: 1rem; margin: 0.5rem 0; background: var(--bg-main); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <strong style="color: var(--dark);">${subtopic.name}</strong>
+                        <span style="background: ${badgeColor}20; color: ${badgeColor}; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${subtopic.difficulty}</span>
+                    </div>
+                    <small style="color: var(--text-muted);">${subtopic.description || ''}</small>
                 </li>
             `;
         });
@@ -129,8 +175,6 @@ function displayResults(syllabus) {
     
     resultsContent.innerHTML = html;
     document.getElementById('results').style.display = 'block';
-    
-    // Scroll to results
     document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 }
 

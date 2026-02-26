@@ -3,18 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Lera-KI Worksheet Generator{% endblock %}</title>
+    <title>{% block title %}Lera-KI | AI Educational Platform{% endblock %}</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <nav class="navbar">
-        <div class="container">
-            <h1 class="logo">📚 Lera-KI</h1>
+        <div class="container nav-container">
+            <a href="/" class="logo">
+                Lera<span>KI</span>
+            </a>
             <ul class="nav-links">
-                <li><a href="/">Home</a></li>
-                <li><a href="/syllabus">Syllabus Analyzer</a></li>
-                <li><a href="/worksheet-builder">Worksheet Builder</a></li>
-                <a href="/grade">Grade Worksheet</a>  <!-- NEW -->
+                <li><a href="/syllabus"><i data-lucide="book-open"></i> Syllabus Analyzer</a></li>
+                <li><a href="/worksheet-builder"><i data-lucide="file-edit"></i> Worksheet Builder</a></li>
+                <li><a href="/grade" class="btn-nav"><i data-lucide="check-circle"></i> Grade Worksheet</a></li>
             </ul>
         </div>
     </nav>
@@ -24,9 +32,13 @@
     </main>
 
     <footer>
-        <p>&copy; 2026 Lera-KI - AI-Powered Educational Content Generation</p>
+        <p>&copy; 2026 Lera-KI - Elevating Education with AI</p>
     </footer>
 
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

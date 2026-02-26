@@ -3,7 +3,12 @@ import json
 from pathlib import Path
 from syllabus_analyzer import analyze_syllabus, load_analyzed_syllabus
 from worksheet_generator import generate_worksheet
-from worksheet_grader import grade_worksheet, save_grading_result
+import base64
+from worksheet_grader import grade_worksheet_vision, save_grading_result
+import PyPDF2
+import docx
+import io
+import re
 
 app = Flask(__name__)
 
@@ -17,16 +22,65 @@ def index():
 def syllabus_page():
     return render_template('syllabus.html')
 
+#API: Get present syllabuses (demo only)
+@app.route('/api/syllabuses')
+def api_list_syllabuses():
+    syllabus_dir = Path('syllabus')
+    if not syllabus_dir.exists():
+        return jsonify({'syllabuses': []})
+    
+    syllabuses = []
+    for file in syllabus_dir.glob('syllabus_grade*.json'):
+        # Extract grade and subject from filename: syllabus_grade3_math.json
+        match = re.search(r'syllabus_grade(\d+)_(.+)\.json', file.name)
+        if match:
+            grade = int(match.group(1))
+            subject = match.group(2).capitalize()
+            syllabuses.append({
+                'grade': grade,
+                'subject': subject,
+                'filename': file.name,
+                'display_name': f"Grade {grade} {subject}"
+            })
+            
+    # Sort so they appear in a logical order (e.g., Grade 1, Grade 2...)
+    syllabuses = sorted(syllabuses, key=lambda x: (x['grade'], x['subject']))
+    return jsonify({'syllabuses': syllabuses})
+
 # API: Analyze syllabus
 @app.route('/api/analyze-syllabus', methods=['POST'])
 def api_analyze_syllabus():
-    data = request.json
-    syllabus_text = data.get('syllabus_text')
-    grade = data.get('grade')
-    subject = data.get('subject', 'Math')
+    # Because we switched to FormData, we use request.form and request.files
+    grade = request.form.get('grade')
+    subject = request.form.get('subject', 'Math')
+    syllabus_text = request.form.get('syllabus_text', '')
     
+    # Handle File Upload
+    if 'file' in request.files:
+        file = request.files['file']
+        if file.filename != '':
+            try:
+                # Extract text from PDF
+                if file.filename.lower().endswith('.pdf'):
+                    pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.read()))
+                    extracted_text = ""
+                    for page in pdf_reader.pages:
+                        extracted_text += page.extract_text() + "\n"
+                    syllabus_text = extracted_text
+                
+                # Extract text from DOCX
+                elif file.filename.lower().endswith('.docx'):
+                    doc = docx.Document(io.BytesIO(file.read()))
+                    syllabus_text = "\n".join([para.text for para in doc.paragraphs])
+                
+                # Extract text from TXT
+                elif file.filename.lower().endswith('.txt'):
+                    syllabus_text = file.read().decode('utf-8')
+            except Exception as e:
+                return jsonify({'error': f'Failed to read file: {str(e)}'}), 400
+
     if not syllabus_text or not grade:
-        return jsonify({'error': 'Missing syllabus text or grade'}), 400
+        return jsonify({'error': 'Missing syllabus text or file'}), 400
     
     result = analyze_syllabus(syllabus_text, int(grade), subject, save_to_file=True)
     
@@ -119,32 +173,48 @@ def grade_interface():
 @app.route('/api/grade-worksheet', methods=['POST'])
 def api_grade_worksheet():
     try:
-        data = request.json
+        grade = request.form.get('grade')
+        subject = request.form.get('subject')
+        worksheet_title = request.form.get('worksheet_title')
+        answer_key = request.form.get('answer_key')
         
-        result = grade_worksheet(
-            grade=data['grade'],
-            subject=data['subject'],
-            worksheet_title=data['worksheet_title'],
-            student_answers=data['student_answers'],
-            answer_key=data.get('answer_key')
+        # Get list of all uploaded files under the 'student_images' key
+        image_files = request.files.getlist('student_images')
+        
+        if not image_files or image_files[0].filename == '':
+            return jsonify({'success': False, 'error': 'No image(s) uploaded'}), 400
+            
+        # Convert all uploaded images to base64 dictionaries
+        encoded_images = []
+        for img in image_files:
+            image_bytes = img.read()
+            encoded_images.append({
+                "base64": base64.b64encode(image_bytes).decode('utf-8'),
+                "mime_type": img.mimetype
+            })
+        
+        # Call the vision grader with the list of encoded images
+        result = grade_worksheet_vision(
+            grade=int(grade),
+            subject=subject,
+            worksheet_title=worksheet_title,
+            images=encoded_images, # Replaced single image args with this list
+            answer_key=answer_key
         )
         
         if result:
-            # Optionally save the result
-            if data.get('student_name'):
-                save_grading_result(result, data['student_name'])
-            
+            student_name = request.form.get('student_name', 'student')
+            save_grading_result(result, student_name)
             return jsonify({'success': True, 'data': result})
         else:
-            return jsonify({'success': False, 'error': 'Failed to grade worksheet'}), 500
+            return jsonify({'success': False, 'error': 'Failed to grade worksheet. The AI model may be overloaded, please try again.'}), 500
             
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-
 
 if __name__ == '__main__':
     # Ensure directories exist
     Path('syllabus').mkdir(exist_ok=True)
     Path('worksheets').mkdir(exist_ok=True)
     
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', debug=True, port=5000)

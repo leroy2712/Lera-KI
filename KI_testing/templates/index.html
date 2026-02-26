@@ -1,33 +1,50 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Lera-KI{% endblock %}
+{% block title %}Lera-KI - AI-Powered Worksheet Generation{% endblock %}
 
 {% block content %}
 <div class="hero">
-    <h1>Welcome to Lera-KI</h1>
-    <p>AI-Powered Worksheet Generation for Teachers</p>
+    <div class="hero-badge">✨ Teacher-First AI Platform</div>
+    <h1>Transform Your Syllabus into<br><span class="text-gradient">Engaging Worksheets</span></h1>
+    <p>Lera-KI automates curriculum analysis, worksheet generation, and grading so you can focus on what matters most: teaching.</p>
+    <div class="hero-actions">
+        <a href="/syllabus" class="btn btn-primary btn-large">Get Started <i data-lucide="arrow-right"></i></a>
+        <a href="/worksheet-builder" class="btn btn-secondary btn-large">View Builder</a>
+    </div>
+</div>
+
+<div class="features-header">
+    <h2>Everything you need to scale your classroom</h2>
+    <p>Powerful AI tools designed specifically for modern educators.</p>
 </div>
 
 <div class="features">
     <div class="feature-card">
-        <h2>1. Analyze Syllabus</h2>
-        <p>Upload your syllabus and let AI break it down into structured topics and subtopics.</p>
-        <a href="/syllabus" class="btn btn-primary">Analyze Syllabus</a>
+        <div class="feature-icon-wrapper">
+            <i data-lucide="file-search"></i>
+        </div>
+        <h2>Syllabus Analysis</h2>
+        <p>Upload your raw syllabus and let our AI instantly break it down into structured, teachable topics and subtopics.</p>
     </div>
 
     <div class="feature-card">
-        <h2>2. Build Worksheets</h2>
-        <p>Select topics, choose question types, and generate custom worksheets in seconds.</p>
-        <a href="/worksheet-builder" class="btn btn-primary">Build Worksheet</a>
+        <div class="feature-icon-wrapper">
+            <i data-lucide="layout-template"></i>
+        </div>
+        <h2>Dynamic Generation</h2>
+        <p>Select your topics and instantly generate custom worksheets with varied question types and difficulty levels.</p>
     </div>
 
     <div class="feature-card">
-        <h2>📊 Features</h2>
+        <div class="feature-icon-wrapper">
+            <i data-lucide="bar-chart-3"></i>
+        </div>
+        <h2>Advanced Formats</h2>
         <ul class="feature-list">
-            <li>Multiple question types (short answer, multiple choice, word problems)</li>
-            <li>Data visualization (bar charts, pie charts, line charts)</li>
-            <li>Print-ready PDF output</li>
-            <li>Customizable difficulty levels</li>
+            <li><i data-lucide="check"></i> Short answer & multiple choice</li>
+            <li><i data-lucide="check"></i> Automated data visualization</li>
+            <li><i data-lucide="check"></i> Print-ready PDF rendering</li>
+            <li><i data-lucide="check"></i> AI Vision Grading</li>
         </ul>
     </div>
 </div>

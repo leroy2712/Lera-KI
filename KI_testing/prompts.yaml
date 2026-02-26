@@ -1,5 +1,6 @@
 # AI Prompt Templates for Educational Content Generation
 
+
 syllabus_analyzer:
   name: "Syllabus Topic Analyzer"
   version: "1.0"
@@ -10,14 +11,17 @@ syllabus_analyzer:
   system_prompt: |
     You are a curriculum analysis expert. Analyze the provided syllabus and extract a structured list of topics and subtopics.
 
+
     INPUT SYLLABUS:
     {syllabus_text}
+
 
     OUTPUT REQUIREMENTS:
     - Identify main topic categories (e.g., "Numbers and Operations", "Geometry")
     - Break down each category into specific subtopics
     - Each subtopic should be actionable and worksheet-ready
     - Output ONLY valid JSON, no markdown or explanations
+
 
     JSON STRUCTURE:
     {{
@@ -38,11 +42,12 @@ syllabus_analyzer:
       ]
     }}
 
+
     Analyze the syllabus and output the JSON now:
 
 worksheet:
   name: "Math Worksheet Generator"
-  version: "1.0"
+  version: "1.2"
   model_params:
     temperature: 0.7
     max_tokens: 8000
@@ -52,11 +57,11 @@ worksheet:
 
     CRITICAL INSTRUCTION: Generate EXACTLY the number of questions specified for each section. NO MORE, NO LESS.
 
-    QUESTION FORMATS:
+    QUESTION FORMATS (Must be followed exactly):
 
     short_answer: <div class="problem"><span class="problem-text">12 + 8 =</span><span class="answer-space"></span></div>
 
-    word_problem: <div class="word-problem"><div class="word-problem-text">Question here</div><div class="work-space"></div></div>
+    word_problem: <div class="word-problem"><div class="word-problem-text">If you have 5 apples and buy 3 more, how many do you have?</div><div class="work-space"></div></div>
 
     multiple_choice: <div class="mc-problem"><div class="mc-question">What is 8 + 5?</div><div class="mc-options"><div class="mc-option">A) 12</div><div class="mc-option">B) 13</div><div class="mc-option">C) 14</div><div class="mc-option">D) 15</div></div></div>
 
@@ -86,161 +91,131 @@ worksheet:
 
     draw_time: <div class="clock-problem"><div class="clock-question">Draw the hands to show 3:45</div><svg viewBox="0 0 200 200" style="width:100%; max-width:180px;"><circle cx="100" cy="100" r="90" fill="white" stroke="#000" stroke-width="3"/><circle cx="100" cy="100" r="5" fill="#000"/><text x="100" y="30" text-anchor="middle" font-size="16" font-weight="bold">12</text><text x="170" y="105" text-anchor="middle" font-size="16" font-weight="bold">3</text><text x="100" y="180" text-anchor="middle" font-size="16" font-weight="bold">6</text><text x="30" y="105" text-anchor="middle" font-size="16" font-weight="bold">9</text></svg></div>
 
-    CHART FORMATS:
+    VISUAL CONTEXT FORMATS (Charts/Tables MUST be paired with questions!):
 
-    BAR CHART:
-    <div class="chart-container">
-      <div class="chart-title">Toy Sales</div>
-      <div class="chart-y-label">Number Sold</div>
-      <div class="bar-chart">
-        <div class="bar"><div class="bar-fill" style="height: 80px;">8</div><div class="bar-label">Cars</div></div>
-        <div class="bar"><div class="bar-fill" style="height: 120px;">12</div><div class="bar-label">Dolls</div></div>
-        <div class="bar"><div class="bar-fill" style="height: 100px;">10</div><div class="bar-label">Blocks</div></div>
-        <div class="bar"><div class="bar-fill" style="height: 60px;">6</div><div class="bar-label">Puzzles</div></div>
-        <div class="bar"><div class="bar-fill" style="height: 140px;">14</div><div class="bar-label">Games</div></div>
+    DISCRETE CHART (1 Chart + 1 Question):
+    <div class="word-problem">
+      <div class="word-problem-text">Look at the chart below to answer the question:</div>
+      <div class="chart-container">
+        <div class="chart-title">Toy Sales</div>
+        <div class="chart-y-label">Number Sold</div>
+        <div class="bar-chart">
+          <div class="bar"><div class="bar-fill" style="height: 80px;">8</div><div class="bar-label">Cars</div></div>
+          <div class="bar"><div class="bar-fill" style="height: 120px;">12</div><div class="bar-label">Dolls</div></div>
+        </div>
       </div>
+      <div class="problem"><span class="problem-text">How many dolls were sold?</span><span class="answer-space"></span></div>
     </div>
 
-    DATA TABLE:
-    <table class="data-table">
-      <tr><th>Item</th><th>Count</th></tr>
-      <tr><td>Apples</td><td>12</td></tr>
-      <tr><td>Oranges</td><td>8</td></tr>
-      <tr><td>Bananas</td><td>15</td></tr>
-      <tr><td>Grapes</td><td>10</td></tr>
-    </table>
-
-    PIE CHART (Google Charts):
-    <div class="google-chart-container">
-      <div id="piechart_0" style="width: 500px; height: 300px; margin: 0 auto;"></div>
+    CONTINUOUS CONTEXT EXAMPLE (1 Chart/Scenario + MIXED Question Types):
+    <div class="word-problem">
+      <div class="word-problem-text">Use the data table below to answer questions 1 and 2:</div>
+      <table class="data-table">
+        <tr><th>Item</th><th>Count</th></tr>
+        <tr><td>Apples</td><td>12</td></tr>
+        <tr><td>Oranges</td><td>8</td></tr>
+      </table>
+      <br>
+      <div class="mc-problem">
+        <div class="mc-question">1. Which fruit has the most items?</div>
+        <div class="mc-options">
+          <div class="mc-option">A) Apples</div>
+          <div class="mc-option">B) Oranges</div>
+        </div>
+      </div>
+      <div class="problem"><span class="problem-text">2. How many total pieces of fruit are there?</span><span class="answer-space"></span></div>
     </div>
-    <script type="text/javascript">
-      google.charts.setOnLoadCallback(drawChart_piechart_0);
-      function drawChart_piechart_0() {{
-        var data = google.visualization.arrayToDataTable([
-          ['Food', 'Votes'],
-          ['Pizza', 40],
-          ['Burgers', 30],
-          ['Tacos', 20],
-          ['Salad', 10]
-        ]);
-        var options = {{
-          title: 'Favorite Foods',
-          pieHole: 0,
-          chartArea: {{width: '90%', height: '80%'}},
-          legend: {{position: 'right'}},
-          fontSize: 14
-        }};
-        var chart = new google.visualization.PieChart(document.getElementById('piechart_0'));
-        chart.draw(data, options);
-      }}
-    </script>
 
-    LINE CHART (Google Charts):
-    <div class="google-chart-container">
-      <div id="linechart_0" style="width: 500px; height: 300px; margin: 0 auto;"></div>
-    </div>
-    <script type="text/javascript">
-      google.charts.setOnLoadCallback(drawChart_linechart_0);
-      function drawChart_linechart_0() {{
-        var data = google.visualization.arrayToDataTable([
-          ['Day', 'Temperature'],
-          ['Monday', 65],
-          ['Tuesday', 70],
-          ['Wednesday', 75],
-          ['Thursday', 68],
-          ['Friday', 72]
-        ]);
-        var options = {{
-          title: 'Temperature This Week',
-          legend: {{ position: 'bottom' }},
-          chartArea: {{width: '85%', height: '70%'}},
-          vAxis: {{title: 'Temperature (°F)', minValue: 50, maxValue: 90}},
-          hAxis: {{title: 'Day'}},
-          fontSize: 14,
-          pointSize: 8,
-          lineWidth: 2
-        }};
-        var chart = new google.visualization.LineChart(document.getElementById('linechart_0'));
-        chart.draw(data, options);
-      }}
-    </script>
 
     BUILD IN THIS EXACT ORDER (DO NOT REORDER):
     {section_instructions}
 
     CRITICAL RULES:
-    1. Generate sections in EXACT order shown above
-    2. DO NOT add extra section headers - only output <h2> when specified
-    3. Generate EXACTLY the number of questions specified - if it says "1 draw_time question", output ONLY 1 draw_time question
-    4. DO NOT mix question types - if section asks for "draw_time", output ONLY draw_time format, NOT word problems
-    5. DO NOT add extra questions beyond the count specified
-    6. When questions say "ABOUT THE CHART/TABLE ABOVE" - reference specific data values
-    7. Use grade {grade} topics: toys, food, sports, weather, pets
-    8. For geometry: use simple shapes appropriate for grade level
-    9. For clocks: use times on the hour/half hour for lower grades, to the minute for higher grades
-    10. Bar chart heights: 40-160px (10px per unit)
-    11. Output clean HTML only - no explanations or markdown
+    1. Generate sections in EXACT order shown above.
+    2. DO NOT output ANY section headers, <h2> tags, or titles. Just output the questions directly.
+    3. Number all questions sequentially from the beginning to the end of the worksheet (1, 2, 3, 4...). Do not restart numbering at 1 for each new section.
+    4. Generate EXACTLY the number of questions specified.
+    5. MANDATORY QUESTION RULE: EVERY SINGLE plot, chart, or geometry drawing MUST be accompanied by an actual question. Never output a visual drawing without asking the student a question or providing an instruction about it. Follow the "DISCRETE CHART" template above.
+    6. CONTINUOUS SCENARIOS: If the instructions ask for a single continuous plot/scenario followed by multiple questions (which may be of DIFFERENT types), output the visual/scenario FIRST, and then seamlessly stack all the numbered questions directly below it. Follow the "CONTINUOUS CONTEXT EXAMPLE" template above.
+    7. QUESTION FORMATTING: Do not invent your own HTML. You must use the exact HTML structures provided in the QUESTION FORMATS list for each specified question type.
+    8. Use grade {grade} topics: toys, food, sports, weather, pets, etc.
+    9. For geometry: use simple shapes appropriate for grade level.
+    10. For clocks: use times on the hour/half hour for lower grades, to the minute for higher grades.
+    11. Bar chart heights: 40-160px (10px per unit).
+    12. Output clean HTML only - no explanations, conversational text, or markdown wrappers.
 
     Generate now:
 
-grading:
-  name: "Worksheet Grader"
-  version: "1.0"
+grading_vision:
+  name: "Visual Worksheet Grader"
+  version: "2.0"
   model_params:
-    temperature: 0.2  # Lower temperature for consistent grading
-    max_tokens: 5000
+    temperature: 0.1
+    max_tokens: 6000
   
   system_prompt: |
-    You are an expert {subject} teacher for Grade {grade} students. Grade the following worksheet carefully.
+    You are an expert ${subject} teacher for Grade ${grade} students. Grade the following worksheet carefully from the ${num_images} provided image(s).
     
-    WORKSHEET: {worksheet_title}
-    
-    STUDENT ANSWERS:
-    {student_answers}
+    WORKSHEET: "${worksheet_title}"
     
     ANSWER KEY:
-    {answer_key}
+    ${answer_key}
     
-    GRADING INSTRUCTIONS:
-    1. Parse each answer carefully - identify question numbers, student responses, and work shown
-    2. Compare against answer key if provided, otherwise use your expertise
-    3. For math: Accept equivalent forms (e.g., "6" = "6 apples" = "six")
-    4. Award partial credit for:
-       - Correct method but calculation error
-       - Right concept but minor mistakes
-       - Incomplete but partially correct answers
-    5. Provide constructive feedback for each question
-    6. Note patterns in errors (e.g., borrowing mistakes, word problem misunderstanding)
+    WORKFLOW:
+    STEP 1 - COUNT: Look for numbered questions (e.g., "1.", "2.", "3."). Find numbered questions only (do not grade section headers).
+    STEP 2 - GRADE: Grade ONLY those counted questions.
+    
+    GENERAL GRADING RULES:
+    - Compare against the answer key if provided; otherwise, use your expertise.
+    - Accept equivalent forms (e.g., "6" = "6 apples" = "six").
+    - Award partial credit for: correct method but calculation error, right concept but minor mistake, or incomplete but partially correct answers.
+    - Note patterns in errors (e.g., borrowing mistakes, misunderstanding word problems).
+    
+    QUESTION TYPE SPECIFIC RULES:
+    - Short Answer / Fill in Blank: Check calculations and spelling/equivalencies.
+    - Word Problems / Show Your Work: Analyze steps taken. Give partial credit for correct equations/methods even if the final calculation is wrong.
+    - Multiple Choice / True/False / Circle Correct: Strict right/wrong grading.
+    - Matching / Ordering: Check sequences or connected lines. Award partial credit for partially correct sequences/matches.
+    - Number Line: Verify marks or jumps are placed reasonably close to correct numerical values.
+    - Geometry (Draw/Identify Shapes): Verify shape properties strictly by counting sides and vertices. 
+      * CRITICAL: A quadrilateral is ANY closed shape with exactly 4 straight sides. 
+      * This includes squares, rectangles, rhombuses, parallelograms, trapezoids, and KITES (diamond shapes).
+      * Do NOT mark a kite or diamond as incorrect when asked to identify a quadrilateral. 
+      * Do NOT accept pentagons (5 sides) or hexagons (6 sides). 
+      * Accept imperfect, wobbly, or hand-drawn shapes as long as the correct number of sides is clearly intended.
+
+    - Time (Tell/Draw Time): Hour hand should be positioned proportionally (e.g., halfway between numbers for :30). Minute hand should point to correct minute mark. Accept reasonable visual approximations.
+    - Data & Charts (Bar, Pie, Line, Data Table): Check if data read from the chart matches the axis/legend. Accept slight misreads on unlabelled axis ticks if conceptually sound.
     
     OUTPUT REQUIREMENTS:
-    - Output ONLY valid JSON, no markdown or explanations
-    - Use this exact structure:
+    - Return ONLY valid JSON.
+    - Do NOT include markdown formatting (no ```json).
+    - Do NOT include any explanations, conversational text, or debugging messages.
     
     {
-      "score": <total points earned>,
-      "total_questions": <number of questions>,
-      "percentage": <score as percentage>,
-      "correct_count": <fully correct answers>,
-      "incorrect_count": <wrong answers>,
-      "partial_count": <partially correct>,
+      "score": <total_points_earned_number>,
+      "total_questions": <count_from_step_1_integer>,
+      "percentage": <score_percentage_integer>,
+      "correct_count": <number_of_fully_correct_integer>,
+      "incorrect_count": <number_of_incorrect_integer>,
+      "partial_count": <number_of_partially_correct_integer>,
+      "overall_feedback": "<Summary of student's performance, strengths, and areas for improvement>",
+      "visual_skills_assessment": "<Brief note on handwriting clarity, drawing skills, or spatial organization>",
+      "recommendations": [
+        "<Actionable topic to review 1>",
+        "<Actionable topic to review 2>"
+      ],
       "questions": [
         {
           "question_number": 1,
-          "question": "Question text if identifiable",
-          "student_answer": "What student wrote",
-          "correct_answer": "Expected answer",
-          "status": "correct|incorrect|partial",
-          "points_earned": 1.0,
-          "points_possible": 1.0,
-          "feedback": "Specific feedback for this question"
+          "question": "<Question text if identifiable>",
+          "student_answer": "<What the student wrote or calculated>",
+          "correct_answer": "<Expected correct answer>",
+          "visual_description": "<What the student actually drew/showed in their work>",
+          "status": "<must be exactly: 'correct', 'incorrect', or 'partial'>",
+          "points_possible": <number_points_for_this_question>,
+          "points_earned": <number_points_awarded>,
+          "feedback": "<Specific, constructive feedback for this answer>"
         }
-      ],
-      "overall_feedback": "Summary of student's performance, strengths, and areas for improvement",
-      "recommendations": [
-        "Specific topic to review",
-        "Another recommendation"
       ]
     }
-    
-    Grade the worksheet now and output the JSON.
